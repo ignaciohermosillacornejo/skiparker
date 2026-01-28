@@ -19,6 +19,8 @@ export interface BookingResult {
 }
 
 export interface Config {
+  resortUrl?: string;
+  lotPreferences?: string[];
   defaultPlate?: string;
   defaultType?: ReservationType;
   pollInterval: number;
@@ -45,12 +47,16 @@ export interface WatchOptions {
   dryRun: boolean;
   verbose: boolean;
   plate?: string;
+  resortUrl?: string;
+  lotPreferences?: string[];
 }
 
 export interface CheckOptions {
   date: string;
   headed: boolean;
   verbose: boolean;
+  resortUrl?: string;
+  lotPreferences?: string[];
 }
 
 export interface BookOptions {
@@ -60,10 +66,13 @@ export interface BookOptions {
   headed: boolean;
   dryRun: boolean;
   verbose: boolean;
+  resortUrl?: string;
+  lotPreferences?: string[];
 }
 
 export interface AuthOptions {
   verbose: boolean;
+  resortUrl?: string;
 }
 
 export interface SetupOptions {

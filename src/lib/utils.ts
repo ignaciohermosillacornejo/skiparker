@@ -22,6 +22,11 @@ export function parseDate(dateStr: string): Date {
   if (isNaN(date.getTime())) {
     throw new Error(`Invalid date: "${dateStr}". Use YYYY-MM-DD (e.g. 2026-02-14)`);
   }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (date < today) {
+    throw new Error(`Date "${dateStr}" is in the past.`);
+  }
   return date;
 }
 

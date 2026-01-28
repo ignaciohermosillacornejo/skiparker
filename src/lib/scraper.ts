@@ -1,68 +1,46 @@
 import type { Page } from 'playwright-core';
 import type { AvailabilityResult, ReservationType, BookingResult } from '../types.js';
-import { URLS } from '../constants.js';
+import { getUrls } from '../constants.js';
 import { sleep, log } from './utils.js';
 
-// Centralized selectors - discovered from captured HTML (Jan 2026)
-// Site uses Mobiscroll calendar library (mbsc-*) and React with CSS modules
+// Centralized selectors — stable patterns only (no CSS module hashes)
 const SELECTORS = {
-  // Home page
-  reserveSpotLink: 'a[href="/select-parking"]',
-
-  // Mobiscroll Calendar (on /select-parking)
+  // Mobiscroll Calendar — library classes, very stable
   calendar: '.mbsc-calendar',
   calendarNextBtn: '.custom-next',
-  calendarPrevBtn: '.custom-prev',
-  // Days have aria-label like "Saturday, January 3, 2026"
   calendarDay: (dateStr: string) => {
-    // Convert YYYY-MM-DD to full date string for aria-label matching
     const date = new Date(dateStr + 'T12:00:00');
     const formatted = date.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     });
     return `.mbsc-calendar-day-text[aria-label="${formatted}"]`;
   },
 
-  // Availability indicators (legend on calendar page)
-  availabilityLegend: '.SelectDate_availability__IccV4',
-  availableIndicator: '.SelectDate_available__FuxXF',
-  soldOutIndicator: '.SelectDate_soldOut__4YEX8',
-  unavailableIndicator: '.SelectDate_unavailable__buZj7',
-  noReservationIndicator: '.SelectDate_noReservation__C7oHz',
+  // Rate cards — match by text within the active expandable container.
+  // Uses [class*="containerActive"] to match the semantic part of the CSS module class
+  // without depending on the hash suffix.
+  activeRateContainer: '[class*="containerActive"]',
+  rateCard: (label: string) => `[class*="containerActive"] [class*="card"]:has-text("${label}")`,
 
-  // Date selection expandable card
-  dateSection: '.ExpandableCard_titleBox__5k2mD:has-text("Date")',
-  changeDateBtn: '.ExpandableCard_button__dLT0V:has-text("Change Date")',
+  // Lot/zone cards — same pattern for the lot selection step
+  lotCard: (lotName: string) => `[class*="containerActive"] [class*="card"]:has-text("${lotName}")`,
 
-  // Rate selection (after date selected)
-  rateSection: '.ExpandableCard_titleBox__5k2mD:has-text("Parking rate")',
-  rateWrapper: '.SelectRate_wrapper__v6wva',
-  rateCard: '.SelectRate_card__AT83w',
-  rateCopy: '.SelectRate_rateCopy__yfcwz',
-  ratePrice: '.SelectRate_ratePrice__r2\\+hE',
-  // Rate cards contain text like "Carpool 4+" or "Advanced Paid Reservations"
-  carpoolCard: '.SelectRate_card__AT83w:has-text("Carpool")',
-  paidCard: '.SelectRate_card__AT83w:has-text("Paid")',
-
-  // Checkout page (different domain: parking.honkmobile.com)
+  // Checkout page (parking.honkmobile.com) — BEM classes, already stable
   checkoutContainer: '.CheckoutRoute',
   plateDisplay: '.CheckoutVehicleComponent--plate',
   editVehicleBtn: 'button[aria-label="Edit vehicle"]',
   termsCheckbox: 'input#terms',
   termsLabel: 'label[for="terms"]',
-  paymentMethodBtn: '.SelectPaymentMethodButton--wrapper',
   continueBtn: '.CtaButton--container',
 
-  // Navigation
-  backButton: '.BackButton',
-  navTitle: '.Header--center',
-
-  // Auth (settings page)
-  settingsLink: 'a[href="/settings"]',
-  hamburgerIcon: '.Nav_hamburgerIcon__AToZp',
+  // Post-checkout modals and errors
+  overlapModal: '.ConflictConfirm',
+  errorBox: '.TransactionProcessing--errorBox',
+  errorCopy: '.TransactionProcessing--errorCopy',
+  confirmBtn: 'button:has-text("Confirm")',
 } as const;
 
 // Calendar day colors (inline styles indicate availability)
@@ -71,9 +49,35 @@ const CALENDAR_COLORS = {
   soldOut: 'rgb(247, 205, 212)', // Pink/red tint
 } as const;
 
-export async function navigateToReservations(page: Page, verbose = false): Promise<void> {
+export async function selectLot(page: Page, lotName: string, verbose = false): Promise<boolean> {
+  log.verbose(`Selecting lot: ${lotName}`, verbose);
+  const lotCard = await page.$(SELECTORS.lotCard(lotName));
+  if (!lotCard) {
+    log.verbose(`Lot "${lotName}" not found`, verbose);
+    return false;
+  }
+  await lotCard.click();
+  await sleep(1500);
+  return true;
+}
+
+export async function discoverLots(page: Page, resortUrl: string, verbose = false): Promise<string[]> {
+  await page.goto(`${resortUrl}/select-parking`, { waitUntil: 'networkidle' });
+  await sleep(2000);
+  const lotCards = await page.$$('[class*="SelectZone"] [class*="card"]');
+  const lots: string[] = [];
+  for (const card of lotCards) {
+    const text = await card.textContent();
+    if (text) lots.push(text.trim());
+  }
+  log.verbose(`Discovered ${lots.length} lots: ${lots.join(', ')}`, verbose);
+  return lots;
+}
+
+export async function navigateToReservations(page: Page, verbose = false, resortUrl?: string): Promise<void> {
   log.verbose('Navigating to reservation page', verbose);
-  await page.goto(URLS.BASE + '/select-parking', { waitUntil: 'networkidle' });
+  const urls = getUrls(resortUrl);
+  await page.goto(urls.BASE + '/select-parking', { waitUntil: 'networkidle' });
   await sleep(1500); // Wait for SPA and Mobiscroll calendar to render
 }
 
@@ -150,11 +154,18 @@ export async function getDateAvailability(
 export async function checkAvailability(
   page: Page,
   dateStr: string,
-  verbose = false
+  verbose = false,
+  resortUrl?: string,
+  lotPreferences?: string[],
 ): Promise<AvailabilityResult> {
   log.verbose(`Checking availability for ${dateStr}`, verbose);
 
-  await navigateToReservations(page, verbose);
+  await navigateToReservations(page, verbose, resortUrl);
+
+  // Select preferred lot if configured
+  if (lotPreferences?.length) {
+    await selectLot(page, lotPreferences[0], verbose);
+  }
 
   const result: AvailabilityResult = {
     date: dateStr,
@@ -210,21 +221,21 @@ export async function checkAvailability(
   await sleep(1000);
 
   // Check if rate cards are present
-  const rateWrapper = await page.$(SELECTORS.rateWrapper);
+  const rateWrapper = await page.$(SELECTORS.activeRateContainer);
   if (!rateWrapper) {
     log.verbose('Rate selection not shown - date may be unavailable', verbose);
     return result;
   }
 
   // Check for Carpool option
-  const carpoolCard = await page.$(SELECTORS.carpoolCard);
+  const carpoolCard = await page.$(SELECTORS.rateCard('Carpool'));
   if (carpoolCard) {
     result.available.carpool = true;
     log.verbose('Carpool: available', verbose);
   }
 
   // Check for Paid option
-  const paidCard = await page.$(SELECTORS.paidCard);
+  const paidCard = await page.$(SELECTORS.rateCard('Paid'));
   if (paidCard) {
     result.available.paid = true;
     log.verbose('Paid: available', verbose);
@@ -239,7 +250,9 @@ export async function bookSpot(
   type: ReservationType,
   plate: string,
   dryRun = false,
-  verbose = false
+  verbose = false,
+  resortUrl?: string,
+  lotPreferences?: string[],
 ): Promise<BookingResult> {
   log.verbose(`Booking ${type} spot for ${dateStr}`, verbose);
 
@@ -251,25 +264,40 @@ export async function bookSpot(
   };
 
   try {
-    // Navigate and select date
-    await navigateToReservations(page, verbose);
-    const dateSelected = await selectDate(page, dateStr, verbose);
-
-    if (!dateSelected) {
-      result.error = 'Could not select date';
-      return result;
-    }
-
-    // Wait for rate selection
-    await sleep(1000);
-
-    // Select reservation type by clicking the appropriate rate card
     const typeCards: Record<ReservationType, string> = {
-      paid: SELECTORS.paidCard,
-      carpool: SELECTORS.carpoolCard,
+      paid: SELECTORS.rateCard('Paid'),
+      carpool: SELECTORS.rateCard('Carpool'),
     };
 
-    const typeCard = await page.$(typeCards[type]);
+    let typeCard = await page.$(typeCards[type]);
+
+    if (!typeCard) {
+      // Not on rate selection screen — navigate and try each lot in preference order
+      const lotsToTry = lotPreferences?.length ? lotPreferences : [null];
+
+      for (const lot of lotsToTry) {
+        log.verbose(lot ? `Trying lot: ${lot}` : 'Navigating to date selection', verbose);
+        await navigateToReservations(page, verbose, resortUrl);
+
+        if (lot) {
+          const lotSelected = await selectLot(page, lot, verbose);
+          if (!lotSelected) continue;
+        }
+
+        const dateSelected = await selectDate(page, dateStr, verbose);
+        if (!dateSelected) {
+          result.error = 'Could not select date';
+          return result;
+        }
+
+        await sleep(1000);
+        typeCard = await page.$(typeCards[type]);
+        if (typeCard) break;
+
+        log.verbose(lot ? `${type} not available in ${lot}, trying next lot` : `${type} option not found`, verbose);
+      }
+    }
+
     if (!typeCard) {
       result.error = `${type} option not found`;
       return result;
@@ -303,13 +331,31 @@ export async function bookSpot(
     }
 
     // Accept terms and conditions
-    const termsCheckbox = await page.$(SELECTORS.termsCheckbox);
+    log.verbose('Looking for terms checkbox', verbose);
+    const termsCheckbox = await page.waitForSelector(SELECTORS.termsCheckbox, { timeout: 10000 }).catch(() => null);
     if (termsCheckbox) {
       const isChecked = await termsCheckbox.isChecked();
+      log.verbose(`Terms checkbox found, checked: ${isChecked}`, verbose);
       if (!isChecked) {
-        await termsCheckbox.click();
-        await sleep(300);
+        log.verbose('Accepting terms and conditions', verbose);
+        // Click the label wrapper to trigger React state update
+        await page.click(SELECTORS.termsLabel);
+        await sleep(500);
+        // Verify it got checked
+        const nowChecked = await termsCheckbox.isChecked();
+        log.verbose(`Terms after click: ${nowChecked}`, verbose);
+        if (!nowChecked) {
+          // Fallback: force-check via JS
+          log.verbose('Fallback: force-checking via JS', verbose);
+          await termsCheckbox.evaluate((el: HTMLInputElement) => {
+            el.click();
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          });
+          await sleep(500);
+        }
       }
+    } else {
+      log.verbose('Terms checkbox not found - may already be accepted', verbose);
     }
 
     if (dryRun) {
@@ -319,22 +365,88 @@ export async function bookSpot(
       return result;
     }
 
-    // Click continue to complete booking
-    const continueBtn = await page.$(SELECTORS.continueBtn);
-    if (continueBtn) {
-      // Check if button is enabled
-      const isDisabled = await continueBtn.evaluate(
-        el => el.classList.contains('CtaButton--container__disabled')
-      );
-      if (isDisabled) {
-        result.error = 'Continue button is disabled - check terms/payment';
-        return result;
-      }
-      await continueBtn.click();
-      await sleep(3000);
+    // Click Continue button
+    log.verbose('Waiting for Continue button', verbose);
+    const continueBtn = await page.waitForSelector(SELECTORS.continueBtn, { timeout: 15000 }).catch(() => null);
+    if (!continueBtn) {
+      result.error = 'Continue button not found';
+      return result;
     }
 
-    // TODO: Handle post-purchase confirmation page
+    const isDisabled = await continueBtn.evaluate(
+      el => el.classList.contains('CtaButton--container__disabled')
+    );
+    if (isDisabled) {
+      result.error = 'Continue button is disabled - check terms/payment';
+      return result;
+    }
+
+    log.verbose('Clicking Continue', verbose);
+    await continueBtn.click();
+
+    // Race: overlap modal, confirm modal, reservation limit error, or post-purchase redirect
+    log.verbose('Waiting for response after Continue', verbose);
+    const outcome = await Promise.race([
+      page.waitForSelector(SELECTORS.overlapModal, { timeout: 20000 })
+        .then(() => 'overlap' as const),
+      page.waitForSelector(SELECTORS.errorBox, { timeout: 20000 })
+        .then(() => 'limit' as const),
+      page.waitForSelector(SELECTORS.confirmBtn, { timeout: 20000 })
+        .then(() => 'confirm' as const),
+      page.waitForURL('**/post-purchase**', { timeout: 20000 })
+        .then(() => 'redirect' as const),
+    ]).catch(() => null);
+
+    if (!outcome) {
+      result.error = 'No response after clicking Continue';
+      return result;
+    }
+
+    if (outcome === 'overlap') {
+      log.verbose('Parking session overlap detected', verbose);
+      result.error = 'This date overlaps a previously-purchased session';
+      return result;
+    }
+
+    if (outcome === 'limit') {
+      const errorEl = await page.$(SELECTORS.errorCopy);
+      const errorText = errorEl ? await errorEl.textContent() : 'Reservation limit reached';
+      log.verbose(`Reservation limit error: ${errorText}`, verbose);
+      result.error = errorText || 'Reservation limit reached';
+      return result;
+    }
+
+    if (outcome === 'confirm') {
+      const confirmBtn = await page.$(SELECTORS.confirmBtn);
+      if (confirmBtn) {
+        log.verbose('Clicking Confirm', verbose);
+        await confirmBtn.click();
+      }
+    } else {
+      log.verbose('Redirected directly to post-purchase', verbose);
+    }
+
+    // Wait for post-purchase page
+    log.verbose('Waiting for confirmation page', verbose);
+    try {
+      await page.waitForURL('**/post-purchase**', { timeout: 30000 });
+      log.verbose('On post-purchase confirmation page', verbose);
+
+      // Try to extract confirmation number
+      await sleep(2000);
+      const pageText = await page.textContent('body');
+      const confMatch = pageText?.match(/confirmation[:\s#]*([A-Z0-9-]+)/i);
+      if (confMatch) {
+        result.confirmationNumber = confMatch[1];
+      }
+    } catch {
+      const currentUrl = page.url();
+      if (currentUrl.includes('checkout')) {
+        result.error = 'Booking did not complete - still on checkout page';
+        return result;
+      }
+    }
+
     result.success = true;
     return result;
 
@@ -344,10 +456,11 @@ export async function bookSpot(
   }
 }
 
-export async function waitForLogin(page: Page, verbose = false): Promise<boolean> {
+export async function waitForLogin(page: Page, verbose = false, resortUrl?: string): Promise<boolean> {
   log.verbose('Waiting for login...', verbose);
 
-  await page.goto(URLS.LOGIN, { waitUntil: 'networkidle' });
+  const urls = getUrls(resortUrl);
+  await page.goto(urls.LOGIN, { waitUntil: 'networkidle' });
 
   // Wait for either successful login (redirect away from login) or timeout
   try {

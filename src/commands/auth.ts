@@ -16,7 +16,7 @@ export async function authCommand(options: AuthOptions): Promise<void> {
     spinner.text = 'Checking existing session...';
 
     // Check if already logged in
-    if (await isLoggedIn(page)) {
+    if (await isLoggedIn(page, options.resortUrl)) {
       spinner.succeed('Already logged in!');
       await saveSession(context);
       await context.close();
@@ -26,7 +26,7 @@ export async function authCommand(options: AuthOptions): Promise<void> {
     spinner.info('Please log in to your HONK account in the browser window.');
     spinner.start('Waiting for login...');
 
-    const loggedIn = await waitForLogin(page, options.verbose);
+    const loggedIn = await waitForLogin(page, options.verbose, options.resortUrl);
 
     if (loggedIn) {
       spinner.succeed('Login successful!');

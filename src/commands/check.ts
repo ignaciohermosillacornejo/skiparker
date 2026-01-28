@@ -25,7 +25,7 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
     }
 
     spinner.text = 'Checking availability...';
-    const result = await checkAvailability(page, options.date, options.verbose);
+    const result = await checkAvailability(page, options.date, options.verbose, options.resortUrl, options.lotPreferences);
 
     spinner.stop();
 

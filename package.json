@@ -1,7 +1,7 @@
 {
   "name": "ski-parker",
   "version": "0.1.0",
-  "description": "Automated Stevens Pass parking reservation CLI",
+  "description": "Automated HONK-based ski resort parking reservation CLI",
   "type": "module",
   "bin": {
     "ski-parker": "./dist/index.js"
@@ -15,8 +15,9 @@
     "capture": "node dist/capture-fixtures.js"
   },
   "keywords": [
-    "stevens-pass",
+    "ski",
     "parking",
+    "honk",
     "automation",
     "cli"
   ],
@@ -34,6 +35,7 @@
   "devDependencies": {
     "@types/node": "^25.0.10",
     "@types/node-notifier": "^8.0.5",
+    "@vitest/coverage-v8": "^4.0.18",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
   }

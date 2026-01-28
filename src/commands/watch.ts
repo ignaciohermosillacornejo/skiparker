@@ -19,6 +19,8 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
     dryRun,
     verbose,
     plate,
+    resortUrl,
+    lotPreferences,
   } = options;
 
   log.info(`Watching for ${type} parking on ${date}`);
@@ -64,7 +66,7 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
       const spinner = ora(`Check #${checkCount}...`).start();
 
       try {
-        const result = await checkAvailability(page, date, verbose);
+        const result = await checkAvailability(page, date, verbose, resortUrl, lotPreferences);
         const available = result.available[type];
 
         if (available) {
@@ -76,7 +78,7 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
 
           if (autoBook && plate) {
             log.info('Auto-booking...');
-            const bookResult = await bookSpot(page, date, type, plate, dryRun, verbose);
+            const bookResult = await bookSpot(page, date, type, plate, dryRun, verbose, resortUrl, lotPreferences);
 
             if (bookResult.success) {
               log.success(`Booked! Confirmation: ${bookResult.confirmationNumber}`);

@@ -1,11 +1,19 @@
 import path from 'node:path';
 import os from 'node:os';
 
-export const URLS = {
-  BASE: 'https://reservenski.parkstevenspass.com',
-  LOGIN: 'https://reservenski.parkstevenspass.com/login',
-  PROMO: 'https://reservenski.parkstevenspass.com/code',
-} as const;
+export const DEFAULT_RESORT_URL = 'https://reservenski.parkstevenspass.com';
+
+export function getUrls(resortUrl?: string) {
+  const base = resortUrl || process.env.SKI_PARKER_BASE_URL || DEFAULT_RESORT_URL;
+  return {
+    BASE: base,
+    LOGIN: `${base}/login`,
+    PROMO: `${base}/code`,
+  };
+}
+
+// Static fallback for code without config access
+export const URLS = getUrls();
 
 export const PATHS = {
   CONFIG_DIR: path.join(os.homedir(), '.ski-parker'),

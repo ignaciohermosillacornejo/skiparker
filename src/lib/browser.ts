@@ -2,7 +2,7 @@ import { chromium } from 'playwright-extra';
 import type { BrowserContext, Page } from 'playwright-core';
 import stealth from 'puppeteer-extra-plugin-stealth';
 import fs from 'node:fs';
-import { PATHS, DEFAULTS, URLS } from '../constants.js';
+import { PATHS, DEFAULTS, getUrls } from '../constants.js';
 import { log } from './utils.js';
 import { ensureConfigDir } from './config.js';
 
@@ -59,9 +59,10 @@ export async function loadSession(context: BrowserContext): Promise<boolean> {
   }
 }
 
-export async function isLoggedIn(page: Page): Promise<boolean> {
+export async function isLoggedIn(page: Page, resortUrl?: string): Promise<boolean> {
   try {
-    await page.goto(URLS.BASE, { waitUntil: 'networkidle' });
+    const urls = getUrls(resortUrl);
+    await page.goto(urls.BASE, { waitUntil: 'networkidle' });
 
     // Check if we're redirected to login
     const url = page.url();

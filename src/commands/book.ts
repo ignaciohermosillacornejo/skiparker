@@ -28,8 +28,10 @@ export async function bookCommand(options: BookOptions): Promise<void> {
     }
 
     // First check availability
+    const { resortUrl, lotPreferences } = options;
+
     spinner.text = 'Checking availability...';
-    const availability = await checkAvailability(page, date, verbose);
+    const availability = await checkAvailability(page, date, verbose, resortUrl, lotPreferences);
 
     if (!availability.available[type]) {
       spinner.fail(`${type} parking is not available for ${date}`);
@@ -39,7 +41,7 @@ export async function bookCommand(options: BookOptions): Promise<void> {
     spinner.succeed(`${type} parking is available!`);
     spinner.start('Booking...');
 
-    const result = await bookSpot(page, date, type, plate, dryRun, verbose);
+    const result = await bookSpot(page, date, type, plate, dryRun, verbose, resortUrl, lotPreferences);
 
     if (result.success) {
       spinner.succeed('Booking successful!');

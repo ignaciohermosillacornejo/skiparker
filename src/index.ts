@@ -20,7 +20,7 @@ function fail(error: unknown): never {
 
 program
   .name('ski-parker')
-  .description('Automated Stevens Pass parking reservation CLI')
+  .description('Automated HONK-based ski resort parking reservation CLI')
   .version('0.1.0');
 
 // Auth command
@@ -29,7 +29,7 @@ program
   .description('Authenticate with HONK (opens browser for manual login)')
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action(async (opts) => {
-    await authCommand({ verbose: opts.verbose });
+    await authCommand({ verbose: opts.verbose, resortUrl: config.resortUrl });
   });
 
 // Setup command
@@ -56,6 +56,8 @@ program
       date: opts.date,
       headed: opts.headed,
       verbose: opts.verbose,
+      resortUrl: config.resortUrl,
+      lotPreferences: config.lotPreferences,
     });
   });
 
@@ -93,6 +95,8 @@ program
       headed: opts.headed,
       dryRun: opts.dryRun,
       verbose: opts.verbose,
+      resortUrl: config.resortUrl,
+      lotPreferences: config.lotPreferences,
     });
   });
 
@@ -121,6 +125,8 @@ program
       headed: opts.headed,
       dryRun: opts.dryRun,
       verbose: opts.verbose,
+      resortUrl: config.resortUrl,
+      lotPreferences: config.lotPreferences,
     });
   });
 
