@@ -34,14 +34,22 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
     console.log(chalk.bold(`Availability for ${options.date}:`));
     console.log();
 
-    const types: ReservationType[] = ['paid', 'carpool'];
-    for (const type of types) {
-      const available = result.available[type];
-      const status = available
-        ? chalk.green('✓ Available')
-        : chalk.red('✗ Sold Out');
-      const label = type.charAt(0).toUpperCase() + type.slice(1);
-      console.log(`  ${label.padEnd(10)} ${status}`);
+    if (result.status === 'no-reservation') {
+      console.log(chalk.gray('  No reservation needed for this date.'));
+    } else if (result.status === 'unavailable') {
+      console.log(chalk.gray('  This date is unavailable.'));
+    } else if (result.status === 'sold-out') {
+      console.log(chalk.red('  Sold out.'));
+    } else {
+      const types: ReservationType[] = ['paid', 'carpool'];
+      for (const type of types) {
+        const available = result.available[type];
+        const status = available
+          ? chalk.green('✓ Available')
+          : chalk.red('✗ Sold Out');
+        const label = type.charAt(0).toUpperCase() + type.slice(1);
+        console.log(`  ${label.padEnd(10)} ${status}`);
+      }
     }
 
     console.log();

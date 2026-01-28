@@ -1,7 +1,10 @@
 export type ReservationType = 'paid' | 'carpool';
 
+export type DateStatus = 'available' | 'sold-out' | 'no-reservation' | 'unavailable' | 'unknown';
+
 export interface AvailabilityResult {
   date: string;
+  status: DateStatus;
   available: Record<ReservationType, boolean>;
   timestamp: Date;
 }

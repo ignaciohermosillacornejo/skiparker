@@ -158,6 +158,7 @@ export async function checkAvailability(
 
   const result: AvailabilityResult = {
     date: dateStr,
+    status: 'unknown',
     available: {
       paid: false,
       carpool: false,
@@ -165,7 +166,40 @@ export async function checkAvailability(
     timestamp: new Date(),
   };
 
-  // Navigate to the date in calendar
+  // Wait for calendar and check date status before clicking
+  await page.waitForSelector(SELECTORS.calendar, { timeout: 15000 });
+  await sleep(500);
+
+  // Navigate to the correct month if needed (same logic as selectDate)
+  const dateSelector = SELECTORS.calendarDay(dateStr);
+  let dateElement = await page.$(dateSelector);
+  let attempts = 0;
+  while (!dateElement && attempts < 6) {
+    const nextBtn = await page.$(SELECTORS.calendarNextBtn);
+    if (nextBtn) {
+      const isDisabled = await nextBtn.getAttribute('disabled');
+      if (isDisabled) break;
+      await nextBtn.click();
+      await sleep(500);
+      dateElement = await page.$(dateSelector);
+    }
+    attempts++;
+  }
+
+  // Get the date status from calendar colors
+  const dateStatus = await getDateAvailability(page, dateStr, verbose);
+  result.status = dateStatus;
+  log.verbose(`Date status: ${dateStatus}`, verbose);
+
+  if (dateStatus === 'no-reservation' || dateStatus === 'unavailable' || dateStatus === 'unknown') {
+    return result;
+  }
+
+  if (dateStatus === 'sold-out') {
+    return result;
+  }
+
+  // Date is available - click it to see rate options
   const dateSelected = await selectDate(page, dateStr, verbose);
   if (!dateSelected) {
     log.warn('Could not select date on calendar');
