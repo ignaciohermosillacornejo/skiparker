@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HONK Mock</title>
+  <link rel="stylesheet" href="/css/stevens-pass.css" />
+  <link rel="stylesheet" href="/css/honk-app.css" />
+  <link rel="stylesheet" href="/css/honk-vendor.css" />
+  <style>
+    /* Override fixture CSS to ensure mock calendar is clickable by Playwright.
+       The real site's Mobiscroll calendar uses complex absolute positioning.
+       Our simplified React version needs explicit layout. */
+    .mbsc-datepicker { width: 100%; }
+    .mbsc-calendar { overflow: visible !important; }
+    .mbsc-calendar-wrapper { position: relative; }
+    .mbsc-calendar-header { position: relative; z-index: 1; overflow: visible; }
+    .mbsc-calendar-controls { display: flex; align-items: center; justify-content: space-between; padding: 8px; }
+    .mbsc-calendar-week-days { display: flex; }
+    .mbsc-calendar-week-day { flex: 1; text-align: center; padding: 4px 0; }
+    .mbsc-calendar-body { position: relative; z-index: 2; }
+    .mbsc-calendar-body-inner { overflow: visible !important; }
+    .mbsc-calendar-slide { position: relative !important; }
+    .mbsc-calendar-table { display: block; }
+    .mbsc-calendar-row { display: flex; }
+    .mbsc-calendar-cell { flex: 1; text-align: center; padding: 4px 0; }
+    .mbsc-calendar-day-inner { display: flex; justify-content: center; align-items: center; }
+    .mbsc-calendar-day-text {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      position: relative;
+      z-index: 10;
+    }
+    .SelectDate_availability__IccV4 { display: flex; gap: 16px; padding: 8px; justify-content: center; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
