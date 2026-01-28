@@ -34,7 +34,7 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
     console.log(chalk.bold(`Availability for ${options.date}:`));
     console.log();
 
-    const types: ReservationType[] = ['paid', 'carpool', 'ada'];
+    const types: ReservationType[] = ['paid', 'carpool'];
     for (const type of types) {
       const available = result.available[type];
       const status = available

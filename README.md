@@ -58,7 +58,6 @@ ski-parker book --date 2025-02-15 --type paid --plate ABC1234 \
 
 - `paid` - Standard paid parking ($20)
 - `carpool` - Free carpool parking
-- `ada` - ADA accessible parking
 
 ## Configuration
 

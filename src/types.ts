@@ -1,4 +1,4 @@
-export type ReservationType = 'paid' | 'carpool' | 'ada';
+export type ReservationType = 'paid' | 'carpool';
 
 export interface AvailabilityResult {
   date: string;

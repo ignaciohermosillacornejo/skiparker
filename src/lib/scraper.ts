@@ -161,7 +161,6 @@ export async function checkAvailability(
     available: {
       paid: false,
       carpool: false,
-      ada: false,
     },
     timestamp: new Date(),
   };
@@ -196,10 +195,6 @@ export async function checkAvailability(
     result.available.paid = true;
     log.verbose('Paid: available', verbose);
   }
-
-  // ADA typically shown alongside paid if available
-  // For now, assume ADA follows paid availability
-  result.available.ada = result.available.paid;
 
   return result;
 }
@@ -238,7 +233,6 @@ export async function bookSpot(
     const typeCards: Record<ReservationType, string> = {
       paid: SELECTORS.paidCard,
       carpool: SELECTORS.carpoolCard,
-      ada: SELECTORS.paidCard, // ADA uses same card flow
     };
 
     const typeCard = await page.$(typeCards[type]);
