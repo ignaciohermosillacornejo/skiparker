@@ -65,3 +65,8 @@ export interface BookOptions {
 export interface AuthOptions {
   verbose: boolean;
 }
+
+export interface SetupOptions {
+  input?: NodeJS.ReadableStream;
+  output?: NodeJS.WritableStream;
+}
