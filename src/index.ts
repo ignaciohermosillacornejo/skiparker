@@ -6,8 +6,14 @@ import { checkCommand } from './commands/check.js';
 import { watchCommand } from './commands/watch.js';
 import { bookCommand } from './commands/book.js';
 import { loadConfig } from './lib/config.js';
+import { parseDate } from './lib/utils.js';
 import { RESERVATION_TYPES, DEFAULTS } from './constants.js';
 import type { ReservationType } from './types.js';
+
+function validateDate(dateStr: string): string {
+  parseDate(dateStr); // throws on invalid
+  return dateStr;
+}
 
 const config = loadConfig();
 const program = new Command();
@@ -34,6 +40,7 @@ program
   .option('--headed', 'Show browser window', false)
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action(async (opts) => {
+    try { validateDate(opts.date); } catch (e: any) { console.error(e.message); process.exit(1); }
     await checkCommand({
       date: opts.date,
       headed: opts.headed,
@@ -57,7 +64,7 @@ program
   .option('--dry-run', 'Do not actually book', false)
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action(async (opts) => {
-    // Validate type
+    try { validateDate(opts.date); } catch (e: any) { console.error(e.message); process.exit(1); }
     if (!RESERVATION_TYPES.includes(opts.type as ReservationType)) {
       console.error(`Invalid type: ${opts.type}. Must be one of: ${RESERVATION_TYPES.join(', ')}`);
       process.exit(1);
@@ -89,7 +96,7 @@ program
   .option('--dry-run', 'Stop before final confirmation', false)
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action(async (opts) => {
-    // Validate type
+    try { validateDate(opts.date); } catch (e: any) { console.error(e.message); process.exit(1); }
     if (!RESERVATION_TYPES.includes(opts.type as ReservationType)) {
       console.error(`Invalid type: ${opts.type}. Must be one of: ${RESERVATION_TYPES.join(', ')}`);
       process.exit(1);

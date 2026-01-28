@@ -15,9 +15,12 @@ export function formatDate(date: Date): string {
 }
 
 export function parseDate(dateStr: string): Date {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    throw new Error(`Invalid date format: "${dateStr}". Use YYYY-MM-DD (e.g. 2026-02-14)`);
+  }
   const date = new Date(dateStr + 'T12:00:00Z');
   if (isNaN(date.getTime())) {
-    throw new Error(`Invalid date format: ${dateStr}. Use YYYY-MM-DD`);
+    throw new Error(`Invalid date: "${dateStr}". Use YYYY-MM-DD (e.g. 2026-02-14)`);
   }
   return date;
 }
