@@ -4,7 +4,8 @@ import os from 'node:os';
 export const DEFAULT_RESORT_URL = 'https://reservenski.parkstevenspass.com';
 
 export function getUrls(resortUrl?: string) {
-  const raw = resortUrl || process.env.SKI_PARKER_BASE_URL || DEFAULT_RESORT_URL;
+  // Environment variable takes precedence (for testing)
+  const raw = process.env.SKI_PARKER_BASE_URL || resortUrl || DEFAULT_RESORT_URL;
   const base = raw.replace(/\/+$/, ''); // strip trailing slashes
   return {
     BASE: base,

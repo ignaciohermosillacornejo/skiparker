@@ -61,6 +61,32 @@ export async function selectLot(page: Page, lotName: string, verbose = false): P
   return true;
 }
 
+async function selectLotIfNeeded(page: Page, lotPreferences: string[] | undefined, verbose: boolean): Promise<void> {
+  // Check if there are lot cards visible (multi-lot site)
+  const lotCards = await page.$$('[class*="SelectZone"] [class*="card"]');
+  if (lotCards.length === 0) {
+    log.verbose('No lot selection needed (single-lot site)', verbose);
+    return;
+  }
+
+  // Multi-lot site - select preferred lot or first available
+  if (lotPreferences?.length) {
+    for (const pref of lotPreferences) {
+      if (await selectLot(page, pref, verbose)) {
+        return;
+      }
+    }
+    log.verbose('No preferred lots found, selecting first available', verbose);
+  }
+
+  // Select first lot
+  const firstLot = lotCards[0];
+  const lotName = (await firstLot.textContent())?.trim() || 'first lot';
+  log.verbose(`Auto-selecting lot: ${lotName}`, verbose);
+  await firstLot.click();
+  await sleep(1500);
+}
+
 export async function discoverLots(page: Page, resortUrl: string, verbose = false): Promise<string[]> {
   await page.goto(`${resortUrl}/select-parking`, { waitUntil: 'networkidle' });
   await sleep(2000);
@@ -162,10 +188,8 @@ export async function checkAvailability(
 
   await navigateToReservations(page, verbose, resortUrl);
 
-  // Select preferred lot if configured
-  if (lotPreferences?.length) {
-    await selectLot(page, lotPreferences[0], verbose);
-  }
+  // Handle lot selection for multi-lot sites
+  await selectLotIfNeeded(page, lotPreferences, verbose);
 
   const result: AvailabilityResult = {
     date: dateStr,
@@ -273,15 +297,32 @@ export async function bookSpot(
 
     if (!typeCard) {
       // Not on rate selection screen — navigate and try each lot in preference order
-      const lotsToTry = lotPreferences?.length ? lotPreferences : [null];
+      await navigateToReservations(page, verbose, resortUrl);
+
+      // Discover lots if none configured
+      let lotsToTry = lotPreferences?.length ? lotPreferences : [];
+      if (lotsToTry.length === 0) {
+        const lotCards = await page.$$('[class*="SelectZone"] [class*="card"]');
+        for (const card of lotCards) {
+          const text = await card.textContent();
+          if (text) lotsToTry.push(text.trim());
+        }
+      }
+
+      // If still no lots, it's a single-lot site
+      if (lotsToTry.length === 0) {
+        lotsToTry = ['']; // Empty string signals no lot selection needed
+      }
 
       for (const lot of lotsToTry) {
         log.verbose(lot ? `Trying lot: ${lot}` : 'Navigating to date selection', verbose);
-        await navigateToReservations(page, verbose, resortUrl);
 
         if (lot) {
           const lotSelected = await selectLot(page, lot, verbose);
-          if (!lotSelected) continue;
+          if (!lotSelected) {
+            await navigateToReservations(page, verbose, resortUrl);
+            continue;
+          }
         }
 
         const dateSelected = await selectDate(page, dateStr, verbose);
@@ -295,6 +336,7 @@ export async function bookSpot(
         if (typeCard) break;
 
         log.verbose(lot ? `${type} not available in ${lot}, trying next lot` : `${type} option not found`, verbose);
+        await navigateToReservations(page, verbose, resortUrl);
       }
     }
 
