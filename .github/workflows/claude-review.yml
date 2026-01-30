@@ -1,0 +1,60 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+jobs:
+  review:
+    # Skip draft PRs
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Load secrets from 1Password
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: op://Dev/CLAUDE_CODE_OAUTH_TOKEN/credential
+
+      - name: AI Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ env.CLAUDE_CODE_OAUTH_TOKEN }}
+          mode: agent
+          prompt: |
+            You are a code reviewer for ski-parker, a CLI tool for automated ski resort parking reservations.
+
+            REPO: ${{ github.repository }}
+            PR: #${{ github.event.pull_request.number }}
+
+            Review this PR with focus on:
+
+            1. **Code Quality** - Clean code, error handling, readability
+            2. **Security** - No credential leaks, safe browser automation, input validation
+            3. **TypeScript** - Proper typing, no `any` abuse, type safety
+            4. **Testing** - Coverage, edge cases, test quality
+            5. **CLI UX** - Good error messages, helpful output, proper exit codes
+
+            For each issue found:
+            - Post an inline comment on the specific line
+            - Explain the problem clearly
+            - Propose a code snippet showing the fix
+
+            Use `gh pr diff` to see changes, then use `gh pr comment` for inline feedback.
+            Be constructive. Praise good patterns too.
+
+            After reviewing, post a summary comment with your overall assessment.
+
+          claude_args: '--model claude-sonnet-4-20250514 --allowedTools "Bash(gh pr comment*),Bash(gh pr diff*),Bash(gh pr view*),Read,Grep,Glob"'

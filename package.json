@@ -2,9 +2,30 @@
   "name": "ski-parker",
   "version": "0.1.0",
   "description": "Automated HONK-based ski resort parking reservation CLI",
+  "author": "Ignacio Hermosilla <hello@ignaciohermosilla.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ignaciohermosillacornejo/skiparker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ignaciohermosillacornejo/skiparker/issues"
+  },
+  "homepage": "https://github.com/ignaciohermosillacornejo/skiparker#readme",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "bin": {
-    "ski-parker": "./dist/index.js"
+    "ski-parker": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",
@@ -15,7 +36,8 @@
     "test:all": "vitest run --no-file-parallelism --test-timeout 90000",
     "test:watch": "vitest",
     "test:coverage": "vitest run tests/lib/ --coverage",
-    "capture": "node dist/capture-fixtures.js"
+    "capture": "node dist/capture-fixtures.js",
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "ski",
@@ -24,8 +46,6 @@
     "automation",
     "cli"
   ],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
     "chalk": "^5.6.2",
     "commander": "^14.0.2",
