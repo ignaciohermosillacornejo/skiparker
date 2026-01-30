@@ -41,13 +41,10 @@ jobs:
       - name: Run unit tests with coverage
         run: npx vitest run tests/lib/ --coverage
 
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          files: ./coverage/lcov.info
-          fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   e2e-tests:
     runs-on: ubuntu-latest
