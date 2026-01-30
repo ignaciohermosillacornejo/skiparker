@@ -1,5 +1,6 @@
 # ski-parker
 
+[![npm](https://img.shields.io/npm/v/ski-parker)](https://www.npmjs.com/package/ski-parker)
 [![CI](https://github.com/ignaciohermosillacornejo/skiparker/actions/workflows/ci.yml/badge.svg)](https://github.com/ignaciohermosillacornejo/skiparker/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/ignaciohermosillacornejo/skiparker/graph/badge.svg?token=ef917b67-95c6-4703-b72c-b4938239a505)](https://codecov.io/gh/ignaciohermosillacornejo/skiparker)
 
@@ -32,9 +33,11 @@ See [docs/honk-resorts-research.md](docs/honk-resorts-research.md) for detailed 
 ## Installation
 
 ```bash
-npm install
-npm run build
-npm link  # Makes 'ski-parker' available globally
+# Run directly with npx (no install needed)
+npx ski-parker
+
+# Or install globally
+npm install -g ski-parker
 ```
 
 ## Quick Start
