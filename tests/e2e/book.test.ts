@@ -94,4 +94,13 @@ describe('book command (E2E)', () => {
     expect(stdout).toContain('Dry run');
     expect(stdout).toContain('DRY-RUN');
   });
+
+  it('books successfully with multi-lot selection', async () => {
+    await setScenarioViaApi({ lots: ['Lot A', 'Lot B'] });
+
+    const { stdout, exitCode } = runCli('book --date 2026-02-14 --type carpool --plate CFH2637 --lot "Lot A" --verbose');
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain('Date: 2026-02-14');
+    expect(stdout).toContain('Type: carpool');
+  });
 });

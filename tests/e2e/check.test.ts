@@ -67,4 +67,12 @@ describe('check command (E2E)', () => {
     expect(exitCode).toBe(1);
     expect(stdout).toContain('Invalid date format');
   });
+
+  it('shows available types for a multi-lot resort', async () => {
+    await setScenarioViaApi({ lots: ['Lot A', 'Lot B'] });
+
+    const { stdout, exitCode } = runCli('check --date 2026-02-14 --lot "Lot A" --verbose');
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain('Available');
+  });
 });

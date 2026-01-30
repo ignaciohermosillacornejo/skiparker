@@ -1,12 +1,26 @@
 import { useState } from 'react';
 import Calendar from '../components/Calendar';
 import RateCards from '../components/RateCards';
+import LotCards from '../components/LotCards';
+import { getScenario } from '../scenario';
 
 export default function SelectParking() {
+  const [selectedLot, setSelectedLot] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const hasLots = (getScenario().lots ?? []).length > 0;
+
+  function handleLotSelect(lotName: string) {
+    setSelectedLot(lotName);
+  }
 
   function handleDateSelect(dateStr: string) {
     setSelectedDate(dateStr);
+  }
+
+  function handleChangeLocation() {
+    setSelectedLot(null);
+    setSelectedDate(null);
   }
 
   const formattedDate = selectedDate
@@ -17,6 +31,19 @@ export default function SelectParking() {
         year: 'numeric',
       }).toUpperCase()
     : null;
+
+  // Step 1: Location/Lot
+  const step1Active = hasLots && !selectedLot;
+  const step1Disabled = !step1Active;
+  const step1Label = hasLots
+    ? (selectedLot ?? 'Select a location')
+    : 'STEVENS PASS';
+
+  // Step 2: Date — active when location resolved and no date yet
+  const step2Active = (!hasLots || selectedLot !== null) && !selectedDate;
+
+  // Step 3: Rate — active when date selected
+  const step3Active = selectedDate !== null;
 
   return (
     <div className="d-flex flex-column h-100">
@@ -38,18 +65,34 @@ export default function SelectParking() {
 
             <div className="h-100">
               <div>
-                <div className="ExpandableCard_titleBox__5k2mD ExpandableCard_disabled__w5wtI">
+                <div className={`ExpandableCard_titleBox__5k2mD ${step1Disabled ? 'ExpandableCard_disabled__w5wtI' : 'ExpandableCard_active__hfFDY'}`}>
                   <div>
                     <div>1. Parking location</div>
-                    <div className="ExpandableCard_subtitle__s0l-O">STEVENS PASS</div>
+                    {step1Disabled && (
+                      <div className="ExpandableCard_subtitle__s0l-O">{step1Label}</div>
+                    )}
                   </div>
+                  {hasLots && selectedLot && (
+                    <button
+                      className="ExpandableCard_button__dLT0V"
+                      type="button"
+                      onClick={handleChangeLocation}
+                    >
+                      Change Location
+                    </button>
+                  )}
                 </div>
+                {step1Active && (
+                  <div className="ExpandableCard_animatedContainer__wWkUk ExpandableCard_containerActive__4XZKA">
+                    <LotCards onLotSelect={handleLotSelect} />
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="h-100">
               <div>
-                <div className={`ExpandableCard_titleBox__5k2mD ${selectedDate ? 'ExpandableCard_disabled__w5wtI' : 'ExpandableCard_active__hfFDY'}`}>
+                <div className={`ExpandableCard_titleBox__5k2mD ${step2Active ? 'ExpandableCard_active__hfFDY' : (selectedDate ? 'ExpandableCard_disabled__w5wtI' : '')}`}>
                   <div>
                     <div>2. Date</div>
                     {formattedDate && (
@@ -66,7 +109,7 @@ export default function SelectParking() {
                     </button>
                   )}
                 </div>
-                {!selectedDate && (
+                {step2Active && (
                   <div className="ExpandableCard_animatedContainer__wWkUk ExpandableCard_containerActive__4XZKA">
                     <Calendar onDateSelect={handleDateSelect} />
                     <div className="SelectDate_availability__IccV4">
@@ -87,12 +130,12 @@ export default function SelectParking() {
 
             <div className="h-100">
               <div>
-                <div className={`ExpandableCard_titleBox__5k2mD ${selectedDate ? 'ExpandableCard_active__hfFDY' : ''}`}>
+                <div className={`ExpandableCard_titleBox__5k2mD ${step3Active ? 'ExpandableCard_active__hfFDY' : ''}`}>
                   <div>
                     <div>3. Parking rate</div>
                   </div>
                 </div>
-                {selectedDate && (
+                {step3Active && (
                   <div className="ExpandableCard_animatedContainer__wWkUk ExpandableCard_containerActive__4XZKA">
                     <RateCards />
                   </div>

@@ -5,6 +5,7 @@ export interface MockScenario {
   checkoutOutcome: CheckoutOutcome;
   plate: string;
   bookingCount: number;
+  lots?: string[];
 }
 
 // Realistic mix: weekends available/sold-out, some weekdays no-reservation, rest unavailable

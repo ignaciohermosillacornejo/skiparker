@@ -45,6 +45,7 @@ program
   .command('check')
   .description('Check parking availability for a specific date')
   .requiredOption('-d, --date <date>', 'Date to check (YYYY-MM-DD)')
+  .option('-l, --lot <lots...>', 'Lot preference(s) for multi-lot resorts')
   .option('--headed', 'Show browser window', false)
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action(async (opts) => {
@@ -57,7 +58,7 @@ program
       headed: opts.headed,
       verbose: opts.verbose,
       resortUrl: config.resortUrl,
-      lotPreferences: config.lotPreferences,
+      lotPreferences: opts.lot || config.lotPreferences,
     });
   });
 
@@ -67,6 +68,7 @@ program
   .description('Watch for parking availability and optionally auto-book')
   .requiredOption('-d, --date <date>', 'Date to watch (YYYY-MM-DD)')
   .option('-t, --type <type>', `Reservation type: ${RESERVATION_TYPES.join(', ')}`)
+  .option('-l, --lot <lots...>', 'Lot preference(s) for multi-lot resorts')
   .option('-i, --interval <seconds>', 'Poll interval in seconds', String(config.pollInterval || DEFAULTS.POLL_INTERVAL))
   .option('-j, --jitter <seconds>', 'Random ± seconds added to interval', String(config.jitter || DEFAULTS.JITTER))
   .option('--no-notify', 'Disable desktop notifications')
@@ -96,7 +98,7 @@ program
       dryRun: opts.dryRun,
       verbose: opts.verbose,
       resortUrl: config.resortUrl,
-      lotPreferences: config.lotPreferences,
+      lotPreferences: opts.lot || config.lotPreferences,
     });
   });
 
@@ -106,6 +108,7 @@ program
   .description('Book a parking spot immediately')
   .requiredOption('-d, --date <date>', 'Date to book (YYYY-MM-DD)')
   .option('-t, --type <type>', `Reservation type: ${RESERVATION_TYPES.join(', ')}`)
+  .option('-l, --lot <lots...>', 'Lot preference(s) for multi-lot resorts')
   .option('-p, --plate <plate>', 'License plate number')
   .option('--headed', 'Show browser window', false)
   .option('--dry-run', 'Stop before final confirmation', false)
@@ -126,7 +129,7 @@ program
       dryRun: opts.dryRun,
       verbose: opts.verbose,
       resortUrl: config.resortUrl,
-      lotPreferences: config.lotPreferences,
+      lotPreferences: opts.lot || config.lotPreferences,
     });
   });
 
