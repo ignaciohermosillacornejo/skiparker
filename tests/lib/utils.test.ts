@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   sleep,
   jitter,
@@ -123,5 +123,47 @@ describe('meetsOccupancyRequirement', () => {
   it('handles different thresholds', () => {
     expect(meetsOccupancyRequirement(3, 3)).toBe(true);
     expect(meetsOccupancyRequirement(2, 3)).toBe(false);
+  });
+});
+
+describe('log', () => {
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  it('log.info outputs message', () => {
+    log.info('test message');
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  it('log.success outputs message', () => {
+    log.success('test message');
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  it('log.warn outputs message', () => {
+    log.warn('test message');
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  it('log.error outputs message', () => {
+    log.error('test message');
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  it('log.verbose outputs when enabled', () => {
+    log.verbose('test message', true);
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  it('log.verbose does not output when disabled', () => {
+    log.verbose('test message', false);
+    expect(consoleSpy).not.toHaveBeenCalled();
   });
 });

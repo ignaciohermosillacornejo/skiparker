@@ -1,6 +1,7 @@
 # ski-parker
 
 [![CI](https://github.com/ignaciohermosillacornejo/skiparker/actions/workflows/ci.yml/badge.svg)](https://github.com/ignaciohermosillacornejo/skiparker/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/ignaciohermosillacornejo/skiparker)
 
 Automated CLI for booking ski resort parking on [HONK](https://parking.honkmobile.com/)-powered sites.
 
