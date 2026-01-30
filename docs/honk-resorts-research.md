@@ -31,7 +31,7 @@ HONK powers parking reservations at **15 ski resorts** across North America (US 
 | Park City Garage | UT | reserve-garage.parkatparkcitymountain.com | $50 garage | None | 12PM |
 | Solitude | UT | reservenski.parksolitude.com | Variable | FREE (4+) | 1PM |
 | Brighton | UT | reservenski.parkbrightonresort.com | $20 | $10 (4+) | 12PM |
-| Alta | UT | altaparking.com | $25 | FREE (pass) | 1PM |
+| Alta | UT | reserve.altaparking.com | $25 | FREE (pass) | 1PM |
 | Stowe | VT | parking.honkmobile.com/hourly/zones/VT1101 | $30 | FREE (4+) | 2PM |
 | Whistler Blackcomb | BC | reservenski.whistlerblackcombparking.com | FREE | FREE (4+) | 11AM |
 
