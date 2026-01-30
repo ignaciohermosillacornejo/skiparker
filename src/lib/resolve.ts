@@ -7,6 +7,13 @@ export function resolveDate(dateStr: string): string {
   return dateStr;
 }
 
+export function resolveResortUrl(config: Config): string {
+  if (!config.resortUrl) {
+    throw new Error('No resort URL configured. Run `ski-parker setup` first.');
+  }
+  return config.resortUrl;
+}
+
 export function resolveType(flag: string | undefined, config: Config): ReservationType {
   const type = flag || config.defaultType;
   if (!type) {

@@ -27,10 +27,6 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
   log.info(`Checking every ${interval}s (±${jitter}s jitter)`);
 
   if (autoBook) {
-    if (!plate) {
-      log.error('--plate is required when using --auto-book');
-      process.exit(1);
-    }
     log.info(`Auto-book enabled with plate: ${plate}`);
   }
 

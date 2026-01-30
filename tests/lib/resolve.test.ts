@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveDate, resolveType, resolvePlate } from '../../src/lib/resolve.js';
+import { resolveDate, resolveType, resolvePlate, resolveResortUrl } from '../../src/lib/resolve.js';
 import type { Config } from '../../src/types.js';
 
 const mockConfig = (overrides: Partial<Config> = {}): Config => ({
@@ -78,5 +78,17 @@ describe('resolvePlate', () => {
   it('throws when no plate available', () => {
     const config = mockConfig();
     expect(() => resolvePlate(undefined, config)).toThrow('No plate configured');
+  });
+});
+
+describe('resolveResortUrl', () => {
+  it('returns resort URL when configured', () => {
+    const config = mockConfig({ resortUrl: 'https://reservenski.parkstevenspass.com' });
+    expect(resolveResortUrl(config)).toBe('https://reservenski.parkstevenspass.com');
+  });
+
+  it('throws when no resort URL configured', () => {
+    const config = mockConfig();
+    expect(() => resolveResortUrl(config)).toThrow('No resort URL configured');
   });
 });
