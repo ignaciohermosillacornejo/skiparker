@@ -46,6 +46,11 @@ export async function saveSession(context: BrowserContext): Promise<void> {
 }
 
 export async function loadSession(context: BrowserContext): Promise<boolean> {
+  // Skip session requirement when running against mock server (e2e tests)
+  if (process.env.SKI_PARKER_BASE_URL) {
+    return true;
+  }
+
   if (!fs.existsSync(PATHS.SESSION_FILE)) {
     return false;
   }
