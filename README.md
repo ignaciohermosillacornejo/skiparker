@@ -8,7 +8,25 @@ HONK is the parking reservation platform used by many ski resorts across North A
 
 ## Supported Resorts
 
-Any ski resort using HONK for parking reservations should work. Configure the resort URL in your config file or via the `setup` command.
+Validated against all 13 HONK Reserve 'N Ski portals:
+
+| Resort | Location | URL | Type |
+|--------|----------|-----|------|
+| Stevens Pass | WA | reservenski.parkstevenspass.com | Single-lot |
+| Northstar | CA | reservenski.parknorthstar.com | Multi-lot |
+| Heavenly | CA/NV | reservenski.parkheavenly.com | Single-lot |
+| Kirkwood | CA | reservenski.parkkirkwood.com | Single-lot |
+| Palisades Tahoe | CA | reservenski.parkpalisadestahoe.com | Multi-lot |
+| Breckenridge | CO | reservenski.breckpark.com | Multi-lot |
+| A-Basin | CO | reservenski.parkabasin.com | Multi-lot |
+| Park City Surface | UT | reserve.parkatparkcitymountain.com | Single-lot |
+| Park City Garage | UT | reserve-garage.parkatparkcitymountain.com | Single-lot |
+| Solitude | UT | reservenski.parksolitude.com | Single-lot |
+| Brighton | UT | reservenski.parkbrightonresort.com | Single-lot |
+| Alta | UT | reserve.altaparking.com | Single-lot |
+| Whistler Blackcomb | BC | reservenski.whistlerblackcombparking.com | Multi-lot |
+
+See [docs/honk-resorts-research.md](docs/honk-resorts-research.md) for detailed resort information including pricing, carpool rules, and edge cases.
 
 ## Installation
 
@@ -120,3 +138,35 @@ The HONK site may have changed. Update selectors in `src/lib/scraper.ts`.
 
 ### Lot not found
 Run `ski-parker setup` to discover available lots for your resort.
+
+## Development
+
+### Testing
+
+```bash
+# Unit tests (91%+ coverage)
+npm test
+
+# E2E tests with mock HONK server
+npm run test:e2e
+
+# Validate selectors against all real HONK sites
+npx tsx scripts/validate-selectors.ts
+```
+
+### Project Structure
+
+```
+src/
+  lib/
+    selectors.ts    # Pure selector functions (unit tested)
+    scraper.ts      # Browser automation (e2e tested)
+    config.ts       # Configuration management
+    utils.ts        # Utility functions
+tests/
+  lib/              # Unit tests
+  e2e/              # End-to-end tests
+  mock-server/      # Mock HONK server for e2e
+scripts/
+  validate-selectors.ts  # Test selectors against real sites
+```
