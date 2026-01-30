@@ -3,5 +3,8 @@ dist/
 *.log
 .DS_Store
 
+# Test coverage
+coverage/
+
 # Session data (contains auth tokens)
 .ski-parker/

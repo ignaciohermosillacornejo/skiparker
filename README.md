@@ -1,5 +1,7 @@
 # ski-parker
 
+[![CI](https://github.com/ignaciohermosillacornejo/skiparker/actions/workflows/ci.yml/badge.svg)](https://github.com/ignaciohermosillacornejo/skiparker/actions/workflows/ci.yml)
+
 Automated CLI for booking ski resort parking on [HONK](https://parking.honkmobile.com/)-powered sites.
 
 HONK is the parking reservation platform used by many ski resorts across North America. This tool automates the process of checking availability, watching for openings, and booking spots.
