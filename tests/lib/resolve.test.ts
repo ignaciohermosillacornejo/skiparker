@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { resolveDate, resolveType, resolvePlate, resolveResortUrl } from '../../src/lib/resolve.js';
 import type { Config } from '../../src/types.js';
 
@@ -82,12 +82,35 @@ describe('resolvePlate', () => {
 });
 
 describe('resolveResortUrl', () => {
+  const originalEnv = process.env.SKI_PARKER_BASE_URL;
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.SKI_PARKER_BASE_URL;
+    } else {
+      process.env.SKI_PARKER_BASE_URL = originalEnv;
+    }
+  });
+
   it('returns resort URL when configured', () => {
     const config = mockConfig({ resortUrl: 'https://reservenski.parkstevenspass.com' });
     expect(resolveResortUrl(config)).toBe('https://reservenski.parkstevenspass.com');
   });
 
+  it('prefers environment variable over config', () => {
+    process.env.SKI_PARKER_BASE_URL = 'https://mock-server.test';
+    const config = mockConfig({ resortUrl: 'https://reservenski.parkstevenspass.com' });
+    expect(resolveResortUrl(config)).toBe('https://mock-server.test');
+  });
+
+  it('uses environment variable when no config', () => {
+    process.env.SKI_PARKER_BASE_URL = 'https://mock-server.test';
+    const config = mockConfig();
+    expect(resolveResortUrl(config)).toBe('https://mock-server.test');
+  });
+
   it('throws when no resort URL configured', () => {
+    delete process.env.SKI_PARKER_BASE_URL;
     const config = mockConfig();
     expect(() => resolveResortUrl(config)).toThrow('No resort URL configured');
   });

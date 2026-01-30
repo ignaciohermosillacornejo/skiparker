@@ -8,10 +8,12 @@ export function resolveDate(dateStr: string): string {
 }
 
 export function resolveResortUrl(config: Config): string {
-  if (!config.resortUrl) {
+  // Environment variable takes precedence (for testing)
+  const url = process.env.SKI_PARKER_BASE_URL || config.resortUrl;
+  if (!url) {
     throw new Error('No resort URL configured. Run `ski-parker setup` first.');
   }
-  return config.resortUrl;
+  return url;
 }
 
 export function resolveType(flag: string | undefined, config: Config): ReservationType {
