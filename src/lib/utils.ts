@@ -39,3 +39,32 @@ export const log = {
     if (enabled) console.log(chalk.gray('  →'), chalk.gray(msg));
   },
 };
+
+/**
+ * Check if the current time is past the free-after threshold.
+ * Many resorts offer free parking after a certain time (e.g., 10AM).
+ *
+ * @param freeAfterTime - Time in HH:MM format (e.g., "10:00")
+ * @param now - Current time (defaults to now, injectable for testing)
+ * @returns true if current time is at or past the threshold
+ */
+export function isPastFreeTime(freeAfterTime: string, now = new Date()): boolean {
+  const [hours, minutes] = freeAfterTime.split(':').map(Number);
+  if (isNaN(hours) || isNaN(minutes)) {
+    throw new Error(`Invalid time format: "${freeAfterTime}". Use HH:MM (e.g., "10:00")`);
+  }
+  const threshold = new Date(now);
+  threshold.setHours(hours, minutes, 0, 0);
+  return now >= threshold;
+}
+
+/**
+ * Validate that occupancy meets the minimum carpool requirement.
+ *
+ * @param occupancy - Number of occupants in vehicle
+ * @param minRequired - Minimum required (typically 3 or 4)
+ * @returns true if occupancy meets or exceeds requirement
+ */
+export function meetsOccupancyRequirement(occupancy: number, minRequired: number): boolean {
+  return occupancy >= minRequired;
+}

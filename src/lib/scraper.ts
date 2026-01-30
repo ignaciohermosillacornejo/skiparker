@@ -2,31 +2,29 @@ import type { Page } from 'playwright-core';
 import type { AvailabilityResult, ReservationType, BookingResult } from '../types.js';
 import { getUrls } from '../constants.js';
 import { sleep, log } from './utils.js';
+import {
+  buildCalendarDaySelector,
+  buildRateCardSelector,
+  buildLotCardSelector,
+  buildLotDiscoverySelector,
+  parseAvailabilityFromStyle,
+  CALENDAR_COLORS,
+} from './selectors.js';
 
 // Centralized selectors — stable patterns only (no CSS module hashes)
 const SELECTORS = {
   // Mobiscroll Calendar — library classes, very stable
   calendar: '.mbsc-calendar',
   calendarNextBtn: '.custom-next',
-  calendarDay: (dateStr: string) => {
-    const date = new Date(dateStr + 'T12:00:00');
-    const formatted = date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
-    return `.mbsc-calendar-day-text[aria-label="${formatted}"]`;
-  },
+  calendarDay: buildCalendarDaySelector,
 
-  // Rate cards — match by text within the active expandable container.
-  // Uses [class*="containerActive"] to match the semantic part of the CSS module class
-  // without depending on the hash suffix.
+  // Rate cards — uses imported builder
   activeRateContainer: '[class*="containerActive"]',
-  rateCard: (label: string) => `[class*="containerActive"] [class*="card"]:has-text("${label}")`,
+  rateCard: buildRateCardSelector,
 
-  // Lot/zone cards — same pattern for the lot selection step
-  lotCard: (lotName: string) => `[class*="containerActive"] [class*="card"]:has-text("${lotName}")`,
+  // Lot/zone cards — uses imported builder
+  lotCard: buildLotCardSelector,
+  lotDiscovery: buildLotDiscoverySelector(),
 
   // Checkout page (parking.honkmobile.com) — BEM classes, already stable
   checkoutContainer: '.CheckoutRoute',
@@ -43,12 +41,6 @@ const SELECTORS = {
   confirmBtn: 'button:has-text("Confirm")',
 } as const;
 
-// Calendar day colors (inline styles indicate availability)
-const CALENDAR_COLORS = {
-  available: 'rgba(49, 200, 25', // Green tint
-  soldOut: 'rgb(247, 205, 212)', // Pink/red tint
-} as const;
-
 export async function selectLot(page: Page, lotName: string, verbose = false): Promise<boolean> {
   log.verbose(`Selecting lot: ${lotName}`, verbose);
   const lotCard = await page.$(SELECTORS.lotCard(lotName));
@@ -63,7 +55,7 @@ export async function selectLot(page: Page, lotName: string, verbose = false): P
 
 async function selectLotIfNeeded(page: Page, lotPreferences: string[] | undefined, verbose: boolean): Promise<void> {
   // Check if there are lot cards visible (multi-lot site)
-  const lotCards = await page.$$('[class*="SelectZone"] [class*="card"]');
+  const lotCards = await page.$$(SELECTORS.lotDiscovery);
   if (lotCards.length === 0) {
     log.verbose('No lot selection needed (single-lot site)', verbose);
     return;
@@ -90,7 +82,7 @@ async function selectLotIfNeeded(page: Page, lotPreferences: string[] | undefine
 export async function discoverLots(page: Page, resortUrl: string, verbose = false): Promise<string[]> {
   await page.goto(`${resortUrl}/select-parking`, { waitUntil: 'networkidle' });
   await sleep(2000);
-  const lotCards = await page.$$('[class*="SelectZone"] [class*="card"]');
+  const lotCards = await page.$$(SELECTORS.lotDiscovery);
   const lots: string[] = [];
   for (const card of lotCards) {
     const text = await card.textContent();
@@ -142,11 +134,10 @@ export async function selectDate(page: Page, dateStr: string, verbose = false): 
 
   // Check if date is available (green background) or sold out (pink)
   const style = await dateElement.getAttribute('style') || '';
-  const isAvailable = style.includes(CALENDAR_COLORS.available);
-  const isSoldOut = style.includes(CALENDAR_COLORS.soldOut);
+  const colorStatus = parseAvailabilityFromStyle(style);
 
   log.verbose(`Date style: ${style}`, verbose);
-  log.verbose(`Available: ${isAvailable}, Sold out: ${isSoldOut}`, verbose);
+  log.verbose(`Available: ${colorStatus === 'available'}, Sold out: ${colorStatus === 'sold-out'}`, verbose);
 
   // Click the date to proceed
   await dateElement.click();
@@ -165,9 +156,10 @@ export async function getDateAvailability(
   if (!dateElement) return 'unknown';
 
   const style = await dateElement.getAttribute('style') || '';
+  const colorStatus = parseAvailabilityFromStyle(style);
 
-  if (style.includes(CALENDAR_COLORS.available)) return 'available';
-  if (style.includes(CALENDAR_COLORS.soldOut)) return 'sold-out';
+  if (colorStatus === 'available') return 'available';
+  if (colorStatus === 'sold-out') return 'sold-out';
 
   // Check for aria-disabled
   const isDisabled = await dateElement.getAttribute('aria-disabled');
@@ -302,7 +294,7 @@ export async function bookSpot(
       // Discover lots if none configured
       let lotsToTry = lotPreferences?.length ? lotPreferences : [];
       if (lotsToTry.length === 0) {
-        const lotCards = await page.$$('[class*="SelectZone"] [class*="card"]');
+        const lotCards = await page.$$(SELECTORS.lotDiscovery);
         for (const card of lotCards) {
           const text = await card.textContent();
           if (text) lotsToTry.push(text.trim());
