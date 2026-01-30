@@ -4,6 +4,7 @@ import { log } from '../lib/utils.js';
 import { DEFAULT_RESORT_URL, RESERVATION_TYPES } from '../constants.js';
 import { createBrowser } from '../lib/browser.js';
 import { discoverLots } from '../lib/scraper.js';
+import { authCommand } from './auth.js';
 import type { ReservationType, SetupOptions } from '../types.js';
 
 function prompt(rl: readline.Interface, question: string): Promise<string> {
@@ -103,7 +104,23 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
     }
     console.log(`  Plate:  ${config.defaultPlate || 'none'}`);
     console.log(`  Type:   ${config.defaultType || 'none'}`);
-  } finally {
+
+    // Prompt for authentication
+    console.log();
+    const authAnswer = await prompt(rl, 'Authenticate with HONK now? (Y/n): ');
+    const shouldAuth = !authAnswer || authAnswer.toLowerCase() === 'y' || authAnswer.toLowerCase() === 'yes';
+
     rl.close();
+
+    if (shouldAuth) {
+      console.log();
+      await authCommand({ verbose: false, resortUrl });
+    } else {
+      console.log();
+      log.info('Run "ski-parker auth" later to authenticate.');
+    }
+  } catch (error) {
+    rl.close();
+    throw error;
   }
 }
