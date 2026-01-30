@@ -85,6 +85,7 @@ Stevens Pass, Northstar - Multiple lots with same pricing/rules.
 Stevens Pass, Northstar, Heavenly, Kirkwood, A-Basin, Solitude
 - ~$20 for 1-3 occupants
 - FREE for 4+ occupants (still requires reservation)
+- **ADA**: At Kirkwood, ADA parking is bundled with Carpool ("Carpool 4+ / ADA")
 
 ### Model 2: Free Reservations + Paid Advance
 Palisades Tahoe

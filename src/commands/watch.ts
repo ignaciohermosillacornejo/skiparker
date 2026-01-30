@@ -1,7 +1,7 @@
 import ora from 'ora';
 import chalk from 'chalk';
 import type { WatchOptions } from '../types.js';
-import { createBrowser, loadSession } from '../lib/browser.js';
+import { createBrowser, loadSession, checkSessionStatus } from '../lib/browser.js';
 import { checkAvailability, bookSpot } from '../lib/scraper.js';
 import { notifyAvailable, notifyBooked, notifyError } from '../lib/notify.js';
 import { log, sleep, jitter as jitterFn } from '../lib/utils.js';
@@ -59,6 +59,16 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
     const hasSession = await loadSession(context);
     if (!hasSession) {
       log.warn('No saved session. Run `ski-parker auth` first.');
+    } else {
+      // Check session expiration
+      const sessionStatus = await checkSessionStatus(context);
+      if (!sessionStatus.valid) {
+        log.error(sessionStatus.warning || 'Session expired. Run `ski-parker auth` first.');
+        process.exit(1);
+      }
+      if (sessionStatus.warning) {
+        log.warn(sessionStatus.warning);
+      }
     }
 
     while (isRunning) {

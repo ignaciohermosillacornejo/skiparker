@@ -1,4 +1,4 @@
-export type ReservationType = 'paid' | 'carpool';
+export type ReservationType = 'paid' | 'carpool' | 'free';
 
 export type DateStatus = 'available' | 'sold-out' | 'no-reservation' | 'unavailable' | 'unknown';
 

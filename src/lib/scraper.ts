@@ -189,6 +189,7 @@ export async function checkAvailability(
     available: {
       paid: false,
       carpool: false,
+      free: false,
     },
     timestamp: new Date(),
   };
@@ -243,18 +244,25 @@ export async function checkAvailability(
     return result;
   }
 
-  // Check for Carpool option
+  // Check for Carpool option (also matches "Carpool 4+ / ADA")
   const carpoolCard = await page.$(SELECTORS.rateCard('Carpool'));
   if (carpoolCard) {
     result.available.carpool = true;
     log.verbose('Carpool: available', verbose);
   }
 
-  // Check for Paid option
+  // Check for Paid option (also matches "Advanced Paid")
   const paidCard = await page.$(SELECTORS.rateCard('Paid'));
   if (paidCard) {
     result.available.paid = true;
     log.verbose('Paid: available', verbose);
+  }
+
+  // Check for Free option (e.g., Kirkwood Blue zones)
+  const freeCard = await page.$(SELECTORS.rateCard('Free'));
+  if (freeCard) {
+    result.available.free = true;
+    log.verbose('Free: available', verbose);
   }
 
   return result;
@@ -283,6 +291,7 @@ export async function bookSpot(
     const typeCards: Record<ReservationType, string> = {
       paid: SELECTORS.rateCard('Paid'),
       carpool: SELECTORS.rateCard('Carpool'),
+      free: SELECTORS.rateCard('Free'),
     };
 
     let typeCard = await page.$(typeCards[type]);

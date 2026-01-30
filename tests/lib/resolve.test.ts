@@ -57,6 +57,11 @@ describe('resolveType', () => {
     const config = mockConfig();
     expect(resolveType('carpool', config)).toBe('carpool');
   });
+
+  it('accepts free type', () => {
+    const config = mockConfig();
+    expect(resolveType('free', config)).toBe('free');
+  });
 });
 
 describe('resolvePlate', () => {

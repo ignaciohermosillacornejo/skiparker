@@ -1,6 +1,6 @@
 import ora from 'ora';
 import type { BookOptions } from '../types.js';
-import { createBrowser, loadSession } from '../lib/browser.js';
+import { createBrowser, loadSession, validateSession } from '../lib/browser.js';
 import { checkAvailability, bookSpot } from '../lib/scraper.js';
 import { notifyBooked, notifyError } from '../lib/notify.js';
 import { log } from '../lib/utils.js';
@@ -27,8 +27,14 @@ export async function bookCommand(options: BookOptions): Promise<void> {
       process.exit(1);
     }
 
-    // First check availability
+    // Validate session is still active
+    spinner.text = 'Validating session...';
     const { resortUrl, lotPreferences } = options;
+    const sessionStatus = await validateSession(context, resortUrl, verbose);
+    if (!sessionStatus.valid) {
+      spinner.fail(sessionStatus.warning || 'Session expired. Run `ski-parker auth` first.');
+      process.exit(1);
+    }
 
     spinner.text = 'Checking availability...';
     const availability = await checkAvailability(page, date, verbose, resortUrl, lotPreferences);

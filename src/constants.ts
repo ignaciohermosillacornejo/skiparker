@@ -32,4 +32,4 @@ export const DEFAULTS = {
   VIEWPORT_HEIGHT: 720,
 } as const;
 
-export const RESERVATION_TYPES = ['paid', 'carpool'] as const;
+export const RESERVATION_TYPES = ['paid', 'carpool', 'free'] as const;

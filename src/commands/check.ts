@@ -1,7 +1,7 @@
 import ora from 'ora';
 import chalk from 'chalk';
 import type { CheckOptions, ReservationType } from '../types.js';
-import { createBrowser, loadSession } from '../lib/browser.js';
+import { createBrowser, loadSession, checkSessionStatus } from '../lib/browser.js';
 import { checkAvailability } from '../lib/scraper.js';
 import { log } from '../lib/utils.js';
 
@@ -22,6 +22,12 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
 
     if (!hasSession) {
       spinner.warn('No saved session found. Run `ski-parker auth` first.');
+    } else {
+      // Check session expiration
+      const sessionStatus = await checkSessionStatus(context);
+      if (sessionStatus.warning) {
+        spinner.warn(sessionStatus.warning);
+      }
     }
 
     spinner.text = 'Checking availability...';
@@ -41,9 +47,11 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
     } else if (result.status === 'sold-out') {
       console.log(chalk.red('  Sold out.'));
     } else {
-      const types: ReservationType[] = ['paid', 'carpool'];
+      const types: ReservationType[] = ['paid', 'carpool', 'free'];
       for (const type of types) {
         const available = result.available[type];
+        // Skip types that aren't offered at this resort (undefined means not checked)
+        if (available === undefined) continue;
         const status = available
           ? chalk.green('✓ Available')
           : chalk.red('✗ Sold Out');
