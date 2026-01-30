@@ -41,10 +41,18 @@ jobs:
       - name: Run unit tests with coverage
         run: npx vitest run tests/lib/ --coverage
 
+      - name: Load secrets from 1Password
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          CODECOV_TOKEN: op://Dev/CODECOV_TOKEN_SKIPARKER/credential
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
 
   e2e-tests:
     runs-on: ubuntu-latest
