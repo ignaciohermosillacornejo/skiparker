@@ -5,8 +5,8 @@ import { loadConfig, saveConfig, getDefaultConfig, ensureConfigDir } from '../..
 describe('getDefaultConfig', () => {
   it('returns default configuration', () => {
     const config = getDefaultConfig();
-    expect(config.pollInterval).toBe(300);
-    expect(config.jitter).toBe(60);
+    expect(config.pollInterval).toBe(60);
+    expect(config.jitter).toBe(20);
     expect(config.notifications.desktop).toBe(true);
     expect(config.notifications.sound).toBe(true);
     expect(config.browser.headless).toBe(true);
@@ -61,7 +61,7 @@ describe('loadConfig', () => {
     });
 
     const config = loadConfig();
-    expect(config.pollInterval).toBe(300);
+    expect(config.pollInterval).toBe(60);
     expect(readFileSyncSpy).not.toHaveBeenCalled();
   });
 
@@ -75,7 +75,7 @@ describe('loadConfig', () => {
     const config = loadConfig();
     expect(config.resortUrl).toBe('https://example.com');
     expect(config.defaultPlate).toBe('ABC123');
-    expect(config.pollInterval).toBe(300);
+    expect(config.pollInterval).toBe(60);
   });
 
   it('returns default config on JSON parse error', () => {
@@ -83,7 +83,7 @@ describe('loadConfig', () => {
     readFileSyncSpy.mockReturnValue('invalid json');
 
     const config = loadConfig();
-    expect(config.pollInterval).toBe(300);
+    expect(config.pollInterval).toBe(60);
   });
 });
 

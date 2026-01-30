@@ -25,8 +25,8 @@ export const PATHS = {
 } as const;
 
 export const DEFAULTS = {
-  POLL_INTERVAL: 300,
-  JITTER: 60,
+  POLL_INTERVAL: 60,
+  JITTER: 20,
   SLOW_MO: 50,
   VIEWPORT_WIDTH: 1280,
   VIEWPORT_HEIGHT: 720,

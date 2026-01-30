@@ -3,8 +3,8 @@ import { resolveDate, resolveType, resolvePlate, resolveResortUrl } from '../../
 import type { Config } from '../../src/types.js';
 
 const mockConfig = (overrides: Partial<Config> = {}): Config => ({
-  pollInterval: 300,
-  jitter: 60,
+  pollInterval: 60,
+  jitter: 20,
   notifications: { desktop: true, sound: true },
   browser: { headless: true, slowMo: 50 },
   ...overrides,

@@ -75,7 +75,7 @@ Poll for availability until a spot opens.
 ```bash
 ski-parker watch --date 2026-02-15 --type paid \
   [--lot "Zone A"] \
-  [--interval 300] [--jitter 60] \
+  [--interval 60] [--jitter 20] \
   [--auto-book --plate ABC1234] \
   [--no-notify] [--no-sound] \
   [--headed] [--dry-run] [--verbose]
@@ -97,8 +97,8 @@ ski-parker book --date 2026-02-15 --type paid --plate ABC1234 \
 | `-t, --type <type>` | Reservation type: `paid` or `carpool` |
 | `-l, --lot <lots...>` | Lot preference(s) for multi-lot resorts |
 | `-p, --plate <plate>` | License plate number |
-| `-i, --interval <sec>` | Poll interval in seconds (default: 300) |
-| `-j, --jitter <sec>` | Random jitter added to interval (default: 60) |
+| `-i, --interval <sec>` | Poll interval in seconds (default: 60) |
+| `-j, --jitter <sec>` | Random jitter added to interval (default: 20) |
 | `--auto-book` | Automatically book when available |
 | `--headed` | Show browser window |
 | `--dry-run` | Stop before final confirmation |
@@ -124,8 +124,8 @@ Config file: `~/.ski-parker/config.json`
   "defaultPlate": "ABC1234",
   "defaultType": "paid",
   "lotPreferences": ["CREEKSIDE", "UPPER LOTS"],
-  "pollInterval": 300,
-  "jitter": 60
+  "pollInterval": 60,
+  "jitter": 20
 }
 ```
 
