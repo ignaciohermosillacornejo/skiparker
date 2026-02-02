@@ -14,7 +14,7 @@ import { resolveDate, resolveType, resolvePlate, resolveResortUrl } from './lib/
 import { RESERVATION_TYPES, DEFAULTS, PATHS } from './constants.js';
 import { log } from './lib/utils.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const config = loadConfig();
 const program = new Command();
 
