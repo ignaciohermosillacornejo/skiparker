@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { execSync } from 'child_process';
+import fs from 'fs';
+import os from 'os';
 import { authCommand } from './commands/auth.js';
 import { checkCommand } from './commands/check.js';
 import { watchCommand } from './commands/watch.js';
@@ -8,8 +11,10 @@ import { bookCommand } from './commands/book.js';
 import { setupCommand } from './commands/setup.js';
 import { loadConfig } from './lib/config.js';
 import { resolveDate, resolveType, resolvePlate, resolveResortUrl } from './lib/resolve.js';
-import { RESERVATION_TYPES, DEFAULTS } from './constants.js';
+import { RESERVATION_TYPES, DEFAULTS, PATHS } from './constants.js';
+import { log } from './lib/utils.js';
 
+const VERSION = '0.2.0';
 const config = loadConfig();
 const program = new Command();
 
@@ -18,10 +23,13 @@ function fail(error: unknown): never {
   process.exit(1);
 }
 
+// Show beta warning on startup
+log.warn('Beta software - report issues with: ski-parker bug');
+
 program
   .name('ski-parker')
   .description('Automated HONK-based ski resort parking reservation CLI')
-  .version('0.1.0');
+  .version(VERSION);
 
 // Auth command
 program
@@ -38,6 +46,65 @@ program
   .description('Configure default license plate and reservation type')
   .action(async () => {
     await setupCommand();
+  });
+
+// Bug report command
+program
+  .command('bug')
+  .description('Report a bug (opens GitHub issue in browser)')
+  .option('--no-open', 'Print URL instead of opening browser')
+  .action((opts) => {
+    const systemInfo = {
+      version: VERSION,
+      nodeVersion: process.version,
+      platform: os.platform(),
+      arch: os.arch(),
+      osRelease: os.release(),
+      configExists: fs.existsSync(PATHS.CONFIG_FILE),
+    };
+
+    const body = `## Description
+<!-- Describe what happened -->
+
+## Expected behavior
+<!-- What did you expect to happen? -->
+
+## Steps to reproduce
+1.
+2.
+3.
+
+## System information
+\`\`\`
+ski-parker: ${systemInfo.version}
+Node.js: ${systemInfo.nodeVersion}
+Platform: ${systemInfo.platform} (${systemInfo.arch})
+OS: ${systemInfo.osRelease}
+Config exists: ${systemInfo.configExists}
+\`\`\`
+
+## Additional context
+<!-- Any other relevant information -->
+`;
+
+    const url = new URL('https://github.com/ignaciohermosillacornejo/skiparker/issues/new');
+    url.searchParams.set('labels', 'bug');
+    url.searchParams.set('body', body);
+
+    if (opts.open) {
+      const openCmd = os.platform() === 'darwin' ? 'open' :
+                      os.platform() === 'win32' ? 'start' : 'xdg-open';
+      try {
+        execSync(`${openCmd} "${url.toString()}"`);
+        log.info('Opening GitHub issue page in browser...');
+      } catch {
+        console.log('\nCould not open browser. Please visit:\n');
+        console.log(url.toString());
+      }
+    } else {
+      console.log('\nOpen this URL to report a bug:\n');
+      console.log(url.toString());
+    }
   });
 
 // Check command

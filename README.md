@@ -3,6 +3,9 @@
 [![npm](https://img.shields.io/npm/v/ski-parker)](https://www.npmjs.com/package/ski-parker)
 [![CI](https://github.com/ignaciohermosillacornejo/skiparker/actions/workflows/ci.yml/badge.svg)](https://github.com/ignaciohermosillacornejo/skiparker/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/ignaciohermosillacornejo/skiparker/graph/badge.svg?token=ef917b67-95c6-4703-b72c-b4938239a505)](https://codecov.io/gh/ignaciohermosillacornejo/skiparker)
+![Beta](https://img.shields.io/badge/status-beta-yellow)
+
+> **Beta Software**: This tool is under active development. Please report any issues using `ski-parker bug` or by [opening an issue](https://github.com/ignaciohermosillacornejo/skiparker/issues/new).
 
 Automated CLI for booking ski resort parking on [HONK](https://parking.honkmobile.com/)-powered sites.
 
@@ -92,6 +95,13 @@ ski-parker book --date 2026-02-15 --type paid --plate ABC1234 \
   [--headed] [--dry-run] [--verbose]
 ```
 
+### `ski-parker bug`
+Open a pre-filled GitHub issue to report a bug.
+```bash
+ski-parker bug              # Opens browser with issue form
+ski-parker bug --no-open    # Prints URL instead
+```
+
 ## Options
 
 | Option | Description |
@@ -142,6 +152,17 @@ The HONK site may have changed. Update selectors in `src/lib/scraper.ts`.
 
 ### Lot not found
 Run `ski-parker setup` to discover available lots for your resort.
+
+## Reporting Issues
+
+Found a bug or have a feature request?
+
+```bash
+# Easiest way - opens browser with system info pre-filled
+ski-parker bug
+```
+
+Or [open an issue](https://github.com/ignaciohermosillacornejo/skiparker/issues/new) directly on GitHub.
 
 ## Development
 
