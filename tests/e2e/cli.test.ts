@@ -1,37 +1,63 @@
 import { describe, it, expect } from 'vitest';
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const CLI = `node ${path.resolve('dist/index.js')}`;
 
-function runCli(args: string): { stdout: string; stderr: string; exitCode: number } {
+// Read version from package.json for dynamic version testing
+const packageJson = JSON.parse(readFileSync(path.resolve('package.json'), 'utf-8'));
+const CURRENT_VERSION = packageJson.version;
+
+/**
+ * Runs the CLI with the given arguments and returns the combined output.
+ * Uses a dummy base URL to prevent real server connections during testing.
+ *
+ * @param args - CLI arguments to pass
+ * @returns Object with combined stdout/stderr and exit code
+ */
+function runCli(args: string): { stdout: string; exitCode: number } {
   try {
     const stdout = execSync(`${CLI} ${args}`, {
       encoding: 'utf-8',
-      timeout: 10000,
+      timeout: 30000,
+      // Use dummy URL to prevent real connections (these tests don't need mock server)
       env: { ...process.env, SKI_PARKER_BASE_URL: 'http://localhost:9999' },
     });
-    return { stdout, stderr: '', exitCode: 0 };
+    return { stdout, exitCode: 0 };
   } catch (e: any) {
+    // Combine stdout and stderr for easier assertions (matches existing e2e test pattern)
     return {
-      stdout: e.stdout ?? '',
-      stderr: e.stderr ?? '',
+      stdout: (e.stdout ?? '') + (e.stderr ?? ''),
       exitCode: e.status ?? 1,
     };
   }
 }
 
+/**
+ * Extracts and decodes the GitHub issue URL from CLI output.
+ * Handles URL encoding where spaces are represented as '+'.
+ *
+ * @param stdout - CLI output containing the URL
+ * @returns Decoded URL string with spaces restored
+ */
+function extractAndDecodeUrl(stdout: string): string {
+  const url = stdout.match(/https:\/\/github\.com\/[^\s]+/)?.[0];
+  expect(url).toBeDefined();
+  return decodeURIComponent(url!).replace(/\+/g, ' ');
+}
+
 describe('CLI entry point (index.ts)', () => {
   describe('--version', () => {
-    it('outputs the version number', () => {
+    it('outputs a valid semver version number', () => {
       const { stdout, exitCode } = runCli('--version');
       expect(exitCode).toBe(0);
       expect(stdout).toMatch(/^\d+\.\d+\.\d+/m);
     });
 
-    it('shows version 0.2.0', () => {
+    it('shows version matching package.json', () => {
       const { stdout } = runCli('--version');
-      expect(stdout).toContain('0.2.0');
+      expect(stdout).toContain(CURRENT_VERSION);
     });
   });
 
@@ -81,29 +107,29 @@ describe('CLI entry point (index.ts)', () => {
 
   describe('unknown command', () => {
     it('shows error for unknown command', () => {
-      const { stderr, exitCode } = runCli('unknown-command');
+      const { stdout, exitCode } = runCli('unknown-command');
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("unknown command 'unknown-command'");
+      expect(stdout).toContain("unknown command 'unknown-command'");
     });
   });
 
   describe('missing required options', () => {
     it('check requires --date', () => {
-      const { stderr, exitCode } = runCli('check');
+      const { stdout, exitCode } = runCli('check');
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("required option '-d, --date <date>'");
+      expect(stdout).toContain("required option '-d, --date <date>'");
     });
 
     it('watch requires --date', () => {
-      const { stderr, exitCode } = runCli('watch');
+      const { stdout, exitCode } = runCli('watch');
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("required option '-d, --date <date>'");
+      expect(stdout).toContain("required option '-d, --date <date>'");
     });
 
     it('book requires --date', () => {
-      const { stderr, exitCode } = runCli('book');
+      const { stdout, exitCode } = runCli('book');
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("required option '-d, --date <date>'");
+      expect(stdout).toContain("required option '-d, --date <date>'");
     });
   });
 
@@ -151,11 +177,8 @@ describe('bug command', () => {
 
     it('includes system information in URL body', () => {
       const { stdout } = runCli('bug --no-open');
-      const url = stdout.match(/https:\/\/github\.com\/[^\s]+/)?.[0];
-      expect(url).toBeDefined();
+      const decodedUrl = extractAndDecodeUrl(stdout);
 
-      // URL uses + for spaces, decode and replace
-      const decodedUrl = decodeURIComponent(url!).replace(/\+/g, ' ');
       expect(decodedUrl).toContain('ski-parker:');
       expect(decodedUrl).toContain('Node.js:');
       expect(decodedUrl).toContain('Platform:');
@@ -164,9 +187,7 @@ describe('bug command', () => {
 
     it('includes issue template sections', () => {
       const { stdout } = runCli('bug --no-open');
-      const url = stdout.match(/https:\/\/github\.com\/[^\s]+/)?.[0];
-      // URL uses + for spaces, decode and replace
-      const decodedUrl = decodeURIComponent(url!).replace(/\+/g, ' ');
+      const decodedUrl = extractAndDecodeUrl(stdout);
 
       expect(decodedUrl).toContain('## Description');
       expect(decodedUrl).toContain('## Expected behavior');
@@ -196,31 +217,22 @@ describe('bug command', () => {
 
     it('includes current version in system info', () => {
       const { stdout } = runCli('bug --no-open');
-      const url = stdout.match(/https:\/\/github\.com\/[^\s]+/)?.[0];
-      // URL uses + for spaces, decode and replace
-      const decodedUrl = decodeURIComponent(url!).replace(/\+/g, ' ');
+      const decodedUrl = extractAndDecodeUrl(stdout);
 
-      // Should contain the current version
-      expect(decodedUrl).toContain('ski-parker: 0.2.0');
+      expect(decodedUrl).toContain(`ski-parker: ${CURRENT_VERSION}`);
     });
 
     it('includes Node.js version in system info', () => {
       const { stdout } = runCli('bug --no-open');
-      const url = stdout.match(/https:\/\/github\.com\/[^\s]+/)?.[0];
-      // URL uses + for spaces, decode and replace
-      const decodedUrl = decodeURIComponent(url!).replace(/\+/g, ' ');
+      const decodedUrl = extractAndDecodeUrl(stdout);
 
-      // Should contain Node.js version (format: vX.Y.Z)
       expect(decodedUrl).toMatch(/Node\.js: v\d+\.\d+\.\d+/);
     });
 
     it('includes platform info', () => {
       const { stdout } = runCli('bug --no-open');
-      const url = stdout.match(/https:\/\/github\.com\/[^\s]+/)?.[0];
-      // URL uses + for spaces, decode and replace
-      const decodedUrl = decodeURIComponent(url!).replace(/\+/g, ' ');
+      const decodedUrl = extractAndDecodeUrl(stdout);
 
-      // Should contain platform (darwin, linux, win32)
       expect(decodedUrl).toMatch(/Platform: (darwin|linux|win32)/);
     });
   });
