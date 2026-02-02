@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-02-02
 
 ### Added
 - `ski-parker bug` command for easy issue reporting (opens pre-filled GitHub issue)
@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SECURITY.md with vulnerability reporting guidelines
 - GitHub issue templates (bug report, feature request)
 - GitHub pull request template
+- Comprehensive CLI and bug command tests (25 new e2e tests)
+- Branch protection on main (requires CI to pass)
 
 ### Fixed
-- Version string in CLI now correctly shows 0.2.0 (was hardcoded as 0.1.0)
+- Version string in CLI now correctly shows current version (was hardcoded)
 
 ## [0.2.0] - 2026-01-30
 
@@ -60,5 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dry-run mode for testing without booking
 - Verbose logging option
 
+[0.3.0]: https://github.com/ignaciohermosillacornejo/skiparker/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ignaciohermosillacornejo/skiparker/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ignaciohermosillacornejo/skiparker/releases/tag/v0.1.0
