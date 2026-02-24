@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
-import { startMockServer, stopMockServer, getMockUrl, setScenarioViaApi } from './helpers';
+import { startMockServer, stopMockServer, getMockUrl, setScenarioViaApi, futureDate } from './helpers';
 
 const CLI = `node ${path.resolve('dist/index.js')}`;
+
+// Dynamic future dates to avoid "date in the past" errors
+const AVAILABLE_DATE = futureDate(7);
+const SOLD_OUT_DATE = futureDate(8);
+const NO_RESERVATION_DATE = futureDate(9);
+const UNAVAILABLE_DATE = futureDate(10);
 
 function runCli(args: string): { stdout: string; exitCode: number } {
   try {
@@ -28,31 +34,33 @@ describe('check command (E2E)', () => {
   });
 
   beforeEach(async () => {
-    await setScenarioViaApi({});
+    await setScenarioViaApi({
+      dates: {
+        [AVAILABLE_DATE]: 'available',
+        [SOLD_OUT_DATE]: 'sold-out',
+        [NO_RESERVATION_DATE]: 'no-reservation',
+      },
+    });
   });
 
   it('shows available types for an available date', async () => {
-    // 2026-02-14 is available in default scenario
-    const { stdout, exitCode } = runCli('check --date 2026-02-14 --verbose');
+    const { stdout, exitCode } = runCli(`check --date ${AVAILABLE_DATE} --verbose`);
     expect(exitCode).toBe(0);
     expect(stdout).toContain('Available');
   });
 
   it('shows sold out for a sold-out date', async () => {
-    // 2026-02-07 is sold-out in default scenario
-    const { stdout } = runCli('check --date 2026-02-07 --verbose');
+    const { stdout } = runCli(`check --date ${SOLD_OUT_DATE} --verbose`);
     expect(stdout).toContain('Sold out');
   });
 
   it('shows no reservation needed for a no-reservation date', async () => {
-    // 2026-02-16 is no-reservation in default scenario
-    const { stdout } = runCli('check --date 2026-02-16 --verbose');
+    const { stdout } = runCli(`check --date ${NO_RESERVATION_DATE} --verbose`);
     expect(stdout).toContain('No reservation needed');
   });
 
   it('shows unavailable for a date not in scenario', async () => {
-    // 2026-02-09 is not in the default scenario
-    const { stdout } = runCli('check --date 2026-02-09 --verbose');
+    const { stdout } = runCli(`check --date ${UNAVAILABLE_DATE} --verbose`);
     expect(stdout).toContain('unavailable');
   });
 
@@ -69,9 +77,12 @@ describe('check command (E2E)', () => {
   });
 
   it('shows available types for a multi-lot resort', async () => {
-    await setScenarioViaApi({ lots: ['Lot A', 'Lot B'] });
+    await setScenarioViaApi({
+      dates: { [AVAILABLE_DATE]: 'available' },
+      lots: ['Lot A', 'Lot B'],
+    });
 
-    const { stdout, exitCode } = runCli('check --date 2026-02-14 --lot "Lot A" --verbose');
+    const { stdout, exitCode } = runCli(`check --date ${AVAILABLE_DATE} --lot "Lot A" --verbose`);
     expect(exitCode).toBe(0);
     expect(stdout).toContain('Available');
   });

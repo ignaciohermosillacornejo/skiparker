@@ -76,8 +76,16 @@ export async function createBrowser(options: BrowserOptions = {}): Promise<Brows
     log.verbose('Restoring session from storage state', verbose);
   }
 
-  const context = await browser.newContext(contextOptions);
-  return context;
+  try {
+    const context = await browser.newContext(contextOptions);
+    return context;
+  } catch {
+    // Session file may be corrupted — fall back to fresh context
+    log.warn('Session file corrupted, proceeding without session');
+    delete contextOptions.storageState;
+    const context = await browser.newContext(contextOptions);
+    return context;
+  }
 }
 
 /**
