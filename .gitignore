@@ -8,3 +8,6 @@ coverage/
 
 # Session data (contains auth tokens)
 .ski-parker/
+
+# Git worktrees
+.worktrees/
