@@ -92,6 +92,26 @@ export async function discoverLots(page: Page, resortUrl: string, verbose = fals
   return lots;
 }
 
+async function clickFirstAvailableDate(page: Page): Promise<boolean> {
+  for (let monthAttempt = 0; monthAttempt < 3; monthAttempt++) {
+    const dayElements = await page.$$('.mbsc-calendar-day-text');
+    for (const day of dayElements) {
+      const style = await day.getAttribute('style') || '';
+      if (style.includes(CALENDAR_COLORS.available)) {
+        await day.click();
+        await sleep(1000);
+        return true;
+      }
+    }
+    const nextBtn = await page.$(SELECTORS.calendarNextBtn);
+    if (nextBtn) {
+      await nextBtn.click();
+      await sleep(500);
+    }
+  }
+  return false;
+}
+
 export async function discoverParkingTypes(
   page: Page,
   resortUrl: string,
@@ -114,28 +134,7 @@ export async function discoverParkingTypes(
   await page.waitForSelector(SELECTORS.calendar, { timeout: 15000 });
   await sleep(500);
 
-  // Look for any available date in current/next months
-  let foundDate = false;
-  for (let monthAttempt = 0; monthAttempt < 3 && !foundDate; monthAttempt++) {
-    const dayElements = await page.$$('.mbsc-calendar-day-text');
-    for (const day of dayElements) {
-      const style = await day.getAttribute('style') || '';
-      if (style.includes(CALENDAR_COLORS.available)) {
-        await day.click();
-        await sleep(1000);
-        foundDate = true;
-        break;
-      }
-    }
-    if (!foundDate) {
-      const nextBtn = await page.$(SELECTORS.calendarNextBtn);
-      if (nextBtn) {
-        await nextBtn.click();
-        await sleep(500);
-      }
-    }
-  }
-
+  const foundDate = await clickFirstAvailableDate(page);
   if (!foundDate) {
     log.verbose('No available dates found for type discovery', verbose);
     return [];
@@ -435,9 +434,12 @@ export async function bookSpot(
           await sleep(1000);
 
           // Look for the configured plate in the vehicle list
-          const vehicleOption = await page.$(`text="${plate}"`);
-          if (vehicleOption) {
-            await vehicleOption.click();
+          // Use BEM class selector (HONK's vehicle component) with text match
+          const vehicleOption = await page.$(`.CheckoutVehicleComponent--plate:has-text("${plate}")`);
+          // Fall back to broader text match within the vehicle modal
+          const target = vehicleOption ?? await page.$(`[class*="Vehicle"] >> text="${plate}"`);
+          if (target) {
+            await target.click();
             await sleep(1000);
             log.verbose(`Selected vehicle with plate: ${plate}`, verbose);
           } else {

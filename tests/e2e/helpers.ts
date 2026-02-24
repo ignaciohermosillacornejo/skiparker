@@ -48,6 +48,16 @@ export function getMockUrl(): string {
   return MOCK_URL;
 }
 
+/**
+ * Generate a future date string in YYYY-MM-DD format.
+ * @param daysFromNow - Number of days in the future (default 7)
+ */
+export function futureDate(daysFromNow = 7): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromNow);
+  return d.toISOString().split('T')[0];
+}
+
 export async function setScenarioViaApi(scenario: Record<string, unknown>): Promise<void> {
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
