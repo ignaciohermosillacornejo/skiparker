@@ -16,6 +16,21 @@ export interface BrowserOptions {
   verbose?: boolean;
 }
 
+/**
+ * Check whether a saved session file exists (or test env is set).
+ */
+export function hasSession(): boolean {
+  if (process.env.SKI_PARKER_BASE_URL) return true;
+  return fs.existsSync(PATHS.SESSION_FILE);
+}
+
+/**
+ * Create a browser context.
+ *
+ * - headed mode: uses launchPersistentContext (for interactive auth)
+ * - headless mode: uses chromium.launch() + newContext({ storageState })
+ *   so that the full storage state (cookies + localStorage/origins) is restored.
+ */
 export async function createBrowser(options: BrowserOptions = {}): Promise<BrowserContext> {
   ensureConfigDir();
 
@@ -23,21 +38,59 @@ export async function createBrowser(options: BrowserOptions = {}): Promise<Brows
 
   log.verbose(`Launching browser (headed: ${headed})`, verbose);
 
-  const context = await chromium.launchPersistentContext(PATHS.CHROME_PROFILE, {
-    headless: !headed,
+  const commonArgs = [
+    '--disable-blink-features=AutomationControlled',
+    '--no-sandbox',
+  ];
+  const viewport = {
+    width: DEFAULTS.VIEWPORT_WIDTH,
+    height: DEFAULTS.VIEWPORT_HEIGHT,
+  };
+
+  if (headed) {
+    // Interactive mode — persistent context keeps profile across auth sessions
+    const context = await chromium.launchPersistentContext(PATHS.CHROME_PROFILE, {
+      headless: false,
+      channel: 'chrome',
+      args: commonArgs,
+      viewport,
+      slowMo: DEFAULTS.SLOW_MO,
+    });
+    return context;
+  }
+
+  // Headless mode — use standard launch + storageState for full session restore
+  const browser = await chromium.launch({
+    headless: true,
     channel: 'chrome',
-    args: [
-      '--disable-blink-features=AutomationControlled',
-      '--no-sandbox',
-    ],
-    viewport: {
-      width: DEFAULTS.VIEWPORT_WIDTH,
-      height: DEFAULTS.VIEWPORT_HEIGHT,
-    },
-    slowMo: DEFAULTS.SLOW_MO,
+    args: commonArgs,
   });
 
+  const contextOptions: Parameters<typeof browser.newContext>[0] = {
+    viewport,
+  };
+
+  // Restore full storage state (cookies + localStorage/origins) if available
+  if (hasSession()) {
+    contextOptions.storageState = PATHS.SESSION_FILE;
+    log.verbose('Restoring session from storage state', verbose);
+  }
+
+  const context = await browser.newContext(contextOptions);
   return context;
+}
+
+/**
+ * Close a browser context and its parent browser (if any).
+ * Handles both persistent contexts (no parent browser) and standard contexts.
+ */
+export async function closeBrowser(context: BrowserContext): Promise<void> {
+  await context.close();
+  // Standard contexts have a parent browser that also needs closing
+  const browser = context.browser();
+  if (browser) {
+    await browser.close();
+  }
 }
 
 export async function saveSession(context: BrowserContext): Promise<void> {
@@ -45,25 +98,6 @@ export async function saveSession(context: BrowserContext): Promise<void> {
   const state = await context.storageState();
   fs.writeFileSync(PATHS.SESSION_FILE, JSON.stringify(state, null, 2));
   log.success('Session saved');
-}
-
-export async function loadSession(context: BrowserContext): Promise<boolean> {
-  // Skip session requirement when running against mock server (e2e tests)
-  if (process.env.SKI_PARKER_BASE_URL) {
-    return true;
-  }
-
-  if (!fs.existsSync(PATHS.SESSION_FILE)) {
-    return false;
-  }
-
-  try {
-    const state = JSON.parse(fs.readFileSync(PATHS.SESSION_FILE, 'utf-8'));
-    await context.addCookies(state.cookies || []);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export async function isLoggedIn(page: Page, resortUrl?: string): Promise<boolean> {

@@ -92,6 +92,71 @@ export async function discoverLots(page: Page, resortUrl: string, verbose = fals
   return lots;
 }
 
+export async function discoverParkingTypes(
+  page: Page,
+  resortUrl: string,
+  verbose = false,
+): Promise<ReservationType[]> {
+  log.verbose('Discovering available parking types...', verbose);
+
+  await page.goto(`${resortUrl}/select-parking`, { waitUntil: 'networkidle' });
+  await sleep(2000);
+
+  // Handle lot selection — pick first lot if multi-lot site
+  const lotCards = await page.$$(SELECTORS.lotDiscovery);
+  if (lotCards.length > 0) {
+    log.verbose(`Multi-lot site, selecting first lot for type discovery`, verbose);
+    await lotCards[0].click();
+    await sleep(1500);
+  }
+
+  // Wait for calendar and find a green (available) date to click
+  await page.waitForSelector(SELECTORS.calendar, { timeout: 15000 });
+  await sleep(500);
+
+  // Look for any available date in current/next months
+  let foundDate = false;
+  for (let monthAttempt = 0; monthAttempt < 3 && !foundDate; monthAttempt++) {
+    const dayElements = await page.$$('.mbsc-calendar-day-text');
+    for (const day of dayElements) {
+      const style = await day.getAttribute('style') || '';
+      if (style.includes(CALENDAR_COLORS.available)) {
+        await day.click();
+        await sleep(1000);
+        foundDate = true;
+        break;
+      }
+    }
+    if (!foundDate) {
+      const nextBtn = await page.$(SELECTORS.calendarNextBtn);
+      if (nextBtn) {
+        await nextBtn.click();
+        await sleep(500);
+      }
+    }
+  }
+
+  if (!foundDate) {
+    log.verbose('No available dates found for type discovery', verbose);
+    return [];
+  }
+
+  // Check which rate cards are present
+  const types: ReservationType[] = [];
+  const rateWrapper = await page.$(SELECTORS.activeRateContainer);
+  if (!rateWrapper) {
+    log.verbose('Rate selection not shown after clicking date', verbose);
+    return [];
+  }
+
+  if (await page.$(SELECTORS.rateCard('Paid'))) types.push('paid');
+  if (await page.$(SELECTORS.rateCard('Carpool'))) types.push('carpool');
+  if (await page.$(SELECTORS.rateCard('Free'))) types.push('free');
+
+  log.verbose(`Discovered parking types: ${types.join(', ')}`, verbose);
+  return types;
+}
+
 export async function navigateToReservations(page: Page, verbose = false, resortUrl?: string): Promise<void> {
   log.verbose('Navigating to reservation page', verbose);
   const urls = getUrls(resortUrl);
@@ -354,21 +419,31 @@ export async function bookSpot(
     await page.waitForSelector(SELECTORS.checkoutContainer, { timeout: 15000 });
     log.verbose('On checkout page', verbose);
 
-    // Check if we need to update the license plate
+    // Verify the correct license plate is selected
     const currentPlate = await page.$(SELECTORS.plateDisplay);
     if (currentPlate) {
-      const displayedPlate = await currentPlate.textContent();
+      const displayedPlate = (await currentPlate.textContent())?.trim();
       log.verbose(`Current plate: ${displayedPlate}`, verbose);
 
       if (displayedPlate !== plate) {
-        // Click edit to change plate
+        log.verbose(`Plate mismatch: displayed=${displayedPlate}, wanted=${plate}`, verbose);
+
+        // Click "Edit vehicle" to open vehicle selection modal
         const editBtn = await page.$(SELECTORS.editVehicleBtn);
         if (editBtn) {
           await editBtn.click();
-          await sleep(500);
-          // Plate editing modal flow would go here
-          // For now, log a warning
-          log.warn(`Plate mismatch: displayed=${displayedPlate}, wanted=${plate}`);
+          await sleep(1000);
+
+          // Look for the configured plate in the vehicle list
+          const vehicleOption = await page.$(`text="${plate}"`);
+          if (vehicleOption) {
+            await vehicleOption.click();
+            await sleep(1000);
+            log.verbose(`Selected vehicle with plate: ${plate}`, verbose);
+          } else {
+            result.error = `License plate ${plate} is not registered to your HONK account. Add it at parking.honkmobile.com first, or run \`ski-parker setup\` to change your plate.`;
+            return result;
+          }
         }
       }
     }

@@ -1,7 +1,7 @@
 import ora from 'ora';
 import chalk from 'chalk';
 import type { WatchOptions } from '../types.js';
-import { createBrowser, loadSession, checkSessionStatus } from '../lib/browser.js';
+import { createBrowser, hasSession, closeBrowser, checkSessionStatus } from '../lib/browser.js';
 import { checkAvailability, bookSpot } from '../lib/scraper.js';
 import { notifyAvailable, notifyBooked, notifyError } from '../lib/notify.js';
 import { log, sleep, jitter as jitterFn } from '../lib/utils.js';
@@ -49,13 +49,14 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
   });
 
   try {
+    if (!hasSession()) {
+      log.warn('No saved session. Run `ski-parker auth` first.');
+    }
+
     context = await createBrowser({ headed, verbose });
     const page = await context.newPage();
 
-    const hasSession = await loadSession(context);
-    if (!hasSession) {
-      log.warn('No saved session. Run `ski-parker auth` first.');
-    } else {
+    if (hasSession()) {
       // Check session expiration
       const sessionStatus = await checkSessionStatus(context);
       if (!sessionStatus.valid) {
@@ -116,7 +117,7 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
     process.exit(1);
   } finally {
     if (context) {
-      await context.close();
+      await closeBrowser(context);
     }
     log.info(`Completed ${checkCount} checks`);
   }

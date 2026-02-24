@@ -1,7 +1,7 @@
 import ora from 'ora';
 import chalk from 'chalk';
 import type { CheckOptions, ReservationType } from '../types.js';
-import { createBrowser, loadSession, checkSessionStatus } from '../lib/browser.js';
+import { createBrowser, hasSession, closeBrowser, checkSessionStatus } from '../lib/browser.js';
 import { checkAvailability } from '../lib/scraper.js';
 import { log } from '../lib/utils.js';
 
@@ -10,6 +10,10 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
 
   let context;
   try {
+    if (!hasSession()) {
+      spinner.warn('No saved session found. Run `ski-parker auth` first.');
+    }
+
     context = await createBrowser({
       headed: options.headed,
       verbose: options.verbose
@@ -17,12 +21,7 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
 
     const page = await context.newPage();
 
-    spinner.text = 'Loading session...';
-    const hasSession = await loadSession(context);
-
-    if (!hasSession) {
-      spinner.warn('No saved session found. Run `ski-parker auth` first.');
-    } else {
+    if (hasSession()) {
       // Check session expiration
       const sessionStatus = await checkSessionStatus(context);
       if (sessionStatus.warning) {
@@ -69,7 +68,7 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
     process.exit(1);
   } finally {
     if (context) {
-      await context.close();
+      await closeBrowser(context);
     }
   }
 }
