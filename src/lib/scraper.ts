@@ -1,4 +1,4 @@
-import type { Page } from 'playwright-core';
+import type { Page, ElementHandle } from 'playwright-core';
 import type { AvailabilityResult, ReservationType, BookingResult } from '../types.js';
 import { getUrls } from '../constants.js';
 import { sleep, log } from './utils.js';
@@ -40,6 +40,46 @@ const SELECTORS = {
   errorCopy: '.TransactionProcessing--errorCopy',
   confirmBtn: 'button:has-text("Confirm")',
 } as const;
+
+/**
+ * Find the first visible element matching a selector.
+ * Mobiscroll renders duplicate calendar cells across month panels;
+ * page.$() returns the first (often hidden) match.
+ */
+async function findVisible(page: Page, selector: string): Promise<ElementHandle | null> {
+  const elements = await page.$$(selector);
+  for (const el of elements) {
+    if (await el.isVisible()) return el;
+  }
+  return elements[0] ?? null; // fall back to first match if none visible
+}
+
+/**
+ * Wait for a Cloudflare Turnstile challenge to resolve, if present.
+ * Polls until the Turnstile iframe/widget disappears, then waits for content to load.
+ */
+async function waitForTurnstile(page: Page, verbose = false): Promise<void> {
+  const turnstile = await page.$('iframe[src*="challenges.cloudflare.com"], [class*="cf-turnstile"]');
+  if (!turnstile) {
+    await sleep(5000);
+    return;
+  }
+
+  log.verbose('Cloudflare Turnstile detected, waiting for resolution...', verbose);
+
+  // Wait up to 15s for the challenge to disappear
+  for (let i = 0; i < 30; i++) {
+    await sleep(500);
+    const still = await page.$('iframe[src*="challenges.cloudflare.com"], [class*="cf-turnstile"]');
+    if (!still || !(await still.isVisible())) {
+      log.verbose('Turnstile resolved', verbose);
+      await sleep(1500); // Let rate cards render after challenge clears
+      return;
+    }
+  }
+
+  log.warn('Turnstile did not resolve within 15s');
+}
 
 export async function selectLot(page: Page, lotName: string, verbose = false): Promise<boolean> {
   log.verbose(`Selecting lot: ${lotName}`, verbose);
@@ -96,6 +136,7 @@ async function clickFirstAvailableDate(page: Page): Promise<boolean> {
   for (let monthAttempt = 0; monthAttempt < 3; monthAttempt++) {
     const dayElements = await page.$$('.mbsc-calendar-day-text');
     for (const day of dayElements) {
+      if (!(await day.isVisible())) continue;
       const style = await day.getAttribute('style') || '';
       if (style.includes(CALENDAR_COLORS.available)) {
         await day.click();
@@ -174,8 +215,8 @@ export async function selectDate(page: Page, dateStr: string, verbose = false): 
   const dateSelector = SELECTORS.calendarDay(dateStr);
   log.verbose(`Looking for: ${dateSelector}`, verbose);
 
-  // May need to navigate to correct month - check if date is visible
-  let dateElement = await page.$(dateSelector);
+  // May need to navigate to correct month - find visible date element
+  let dateElement = await findVisible(page, dateSelector);
 
   // If not found, try navigating forward through months
   let attempts = 0;
@@ -186,7 +227,7 @@ export async function selectDate(page: Page, dateStr: string, verbose = false): 
       if (isDisabled) break;
       await nextBtn.click();
       await sleep(500);
-      dateElement = await page.$(dateSelector);
+      dateElement = await findVisible(page, dateSelector);
     }
     attempts++;
   }
@@ -215,7 +256,7 @@ export async function getDateAvailability(
   verbose = false
 ): Promise<'available' | 'sold-out' | 'no-reservation' | 'unavailable' | 'unknown'> {
   const dateSelector = SELECTORS.calendarDay(dateStr);
-  const dateElement = await page.$(dateSelector);
+  const dateElement = await findVisible(page, dateSelector);
 
   if (!dateElement) return 'unknown';
 
@@ -264,7 +305,7 @@ export async function checkAvailability(
 
   // Navigate to the correct month if needed (same logic as selectDate)
   const dateSelector = SELECTORS.calendarDay(dateStr);
-  let dateElement = await page.$(dateSelector);
+  let dateElement = await findVisible(page, dateSelector);
   let attempts = 0;
   while (!dateElement && attempts < 6) {
     const nextBtn = await page.$(SELECTORS.calendarNextBtn);
@@ -273,7 +314,7 @@ export async function checkAvailability(
       if (isDisabled) break;
       await nextBtn.click();
       await sleep(500);
-      dateElement = await page.$(dateSelector);
+      dateElement = await findVisible(page, dateSelector);
     }
     attempts++;
   }
@@ -298,8 +339,8 @@ export async function checkAvailability(
     return result;
   }
 
-  // Wait for rate selection to appear
-  await sleep(1000);
+  // Wait for Cloudflare Turnstile challenge to resolve (if present)
+  await waitForTurnstile(page, verbose);
 
   // Check if rate cards are present
   const rateWrapper = await page.$(SELECTORS.activeRateContainer);

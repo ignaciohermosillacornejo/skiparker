@@ -113,15 +113,10 @@ export async function isLoggedIn(page: Page, resortUrl?: string): Promise<boolea
     const urls = getUrls(resortUrl);
     await page.goto(urls.BASE, { waitUntil: 'networkidle' });
 
-    // Check if we're redirected to login
+    // If the site redirects to /login, the session is invalid.
+    // If it doesn't redirect, the user is authenticated.
     const url = page.url();
-    if (url.includes('/login')) {
-      return false;
-    }
-
-    // Look for logged-in indicators (adjust selectors based on actual site)
-    const logoutButton = await page.$('button:has-text("Logout"), button:has-text("Sign Out"), [data-testid="logout"]');
-    return logoutButton !== null;
+    return !url.includes('/login');
   } catch {
     return false;
   }
