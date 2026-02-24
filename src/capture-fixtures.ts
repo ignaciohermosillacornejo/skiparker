@@ -2,7 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createBrowser, loadSession } from './lib/browser.js';
+import { createBrowser, closeBrowser } from './lib/browser.js';
 import { URLS } from './constants.js';
 import { log, sleep } from './lib/utils.js';
 
@@ -14,8 +14,6 @@ async function captureFixtures() {
 
   const context = await createBrowser({ headed: true, verbose: true });
   const page = await context.newPage();
-
-  await loadSession(context);
 
   try {
     // Capture main reservation page
@@ -47,7 +45,7 @@ async function captureFixtures() {
   } catch (error) {
     log.error(`Capture failed: ${error}`);
   } finally {
-    await context.close();
+    await closeBrowser(context);
   }
 }
 

@@ -1,6 +1,6 @@
 import ora from 'ora';
 import type { BookOptions } from '../types.js';
-import { createBrowser, loadSession, validateSession } from '../lib/browser.js';
+import { createBrowser, hasSession, closeBrowser, validateSession } from '../lib/browser.js';
 import { checkAvailability, bookSpot } from '../lib/scraper.js';
 import { notifyBooked, notifyError } from '../lib/notify.js';
 import { log } from '../lib/utils.js';
@@ -16,16 +16,13 @@ export async function bookCommand(options: BookOptions): Promise<void> {
 
   let context;
   try {
-    context = await createBrowser({ headed, verbose });
-    const page = await context.newPage();
-
-    spinner.text = 'Loading session...';
-    const hasSession = await loadSession(context);
-
-    if (!hasSession) {
+    if (!hasSession()) {
       spinner.fail('No saved session found. Run `ski-parker auth` first.');
       process.exit(1);
     }
+
+    context = await createBrowser({ headed, verbose });
+    const page = await context.newPage();
 
     // Validate session is still active
     spinner.text = 'Validating session...';
@@ -74,7 +71,7 @@ export async function bookCommand(options: BookOptions): Promise<void> {
     process.exit(1);
   } finally {
     if (context) {
-      await context.close();
+      await closeBrowser(context);
     }
   }
 }

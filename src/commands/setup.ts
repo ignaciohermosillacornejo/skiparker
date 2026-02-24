@@ -2,8 +2,8 @@ import readline from 'node:readline';
 import { loadConfig, saveConfig } from '../lib/config.js';
 import { log } from '../lib/utils.js';
 import { DEFAULT_RESORT_URL, RESERVATION_TYPES } from '../constants.js';
-import { createBrowser } from '../lib/browser.js';
-import { discoverLots } from '../lib/scraper.js';
+import { createBrowser, closeBrowser } from '../lib/browser.js';
+import { discoverLots, discoverParkingTypes } from '../lib/scraper.js';
 import { authCommand } from './auth.js';
 import type { ReservationType, SetupOptions } from '../types.js';
 
@@ -35,17 +35,19 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
 
     const resortUrl = config.resortUrl || DEFAULT_RESORT_URL;
 
-    // Lot discovery
+    // Lot and type discovery (shared browser context)
     let discoveredLots: string[] = [];
+    let discoveredTypes: ReservationType[] = [];
     try {
       console.log();
-      log.info('Discovering parking lots...');
+      log.info('Discovering parking lots and types...');
       const context = await createBrowser({ headed: false });
       const page = await context.newPage();
       discoveredLots = await discoverLots(page, resortUrl);
-      await context.close();
+      discoveredTypes = await discoverParkingTypes(page, resortUrl);
+      await closeBrowser(context);
     } catch {
-      log.warn('Could not discover lots. Skipping lot configuration.');
+      log.warn('Could not complete discovery. Some options may need manual configuration.');
     }
 
     if (discoveredLots.length > 1) {
@@ -76,20 +78,29 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
     }
 
     // License plate
-    const currentPlate = config.defaultPlate || 'none';
-    const plateAnswer = await prompt(rl, `License plate [${currentPlate}]: `);
+    const platePrompt = config.defaultPlate
+      ? `License plate (e.g. ABC1234) [${config.defaultPlate}]: `
+      : 'License plate (e.g. ABC1234): ';
+    const plateAnswer = await prompt(rl, platePrompt);
     if (plateAnswer) {
       config.defaultPlate = plateAnswer.toUpperCase();
     }
 
     // Reservation type
-    const currentType = config.defaultType || 'none';
-    const typeAnswer = await prompt(rl, `Preferred type (${RESERVATION_TYPES.join('/')}) [${currentType}]: `);
-    if (typeAnswer) {
-      if (!RESERVATION_TYPES.includes(typeAnswer as ReservationType)) {
-        log.warn(`Invalid type: "${typeAnswer}". Keeping previous value.`);
-      } else {
-        config.defaultType = typeAnswer as ReservationType;
+    const validTypes = discoveredTypes.length > 0 ? discoveredTypes : [...RESERVATION_TYPES];
+
+    if (discoveredTypes.length === 1) {
+      config.defaultType = discoveredTypes[0];
+      log.info(`Single parking type available: ${discoveredTypes[0]}`);
+    } else {
+      const currentType = config.defaultType || 'none';
+      const typeAnswer = await prompt(rl, `Preferred type (${validTypes.join('/')}) [${currentType}]: `);
+      if (typeAnswer) {
+        if (!validTypes.includes(typeAnswer as ReservationType)) {
+          log.warn(`Invalid type: "${typeAnswer}". Keeping previous value.`);
+        } else {
+          config.defaultType = typeAnswer as ReservationType;
+        }
       }
     }
 
