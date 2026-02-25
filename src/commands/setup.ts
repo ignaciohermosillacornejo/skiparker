@@ -1,11 +1,11 @@
 import readline from 'node:readline';
 import { loadConfig, saveConfig } from '../lib/config.js';
 import { log } from '../lib/utils.js';
-import { DEFAULT_RESORT_URL, RESERVATION_TYPES } from '../constants.js';
+import { DEFAULT_RESORT_URL } from '../constants.js';
 import { createBrowser, closeBrowser } from '../lib/browser.js';
-import { discoverLots, discoverParkingTypes } from '../lib/scraper.js';
+import { discoverLots } from '../lib/scraper.js';
 import { authCommand } from './auth.js';
-import type { ReservationType, SetupOptions } from '../types.js';
+import type { SetupOptions } from '../types.js';
 
 function prompt(rl: readline.Interface, question: string): Promise<string> {
   return new Promise((resolve) => {
@@ -35,19 +35,17 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
 
     const resortUrl = config.resortUrl || DEFAULT_RESORT_URL;
 
-    // Lot and type discovery (shared browser context)
+    // Lot discovery
     let discoveredLots: string[] = [];
-    let discoveredTypes: ReservationType[] = [];
     try {
       console.log();
-      log.info('Discovering parking lots and types...');
+      log.info('Discovering parking lots...');
       const context = await createBrowser({ headed: false });
       const page = await context.newPage();
       discoveredLots = await discoverLots(page, resortUrl);
-      discoveredTypes = await discoverParkingTypes(page, resortUrl);
       await closeBrowser(context);
     } catch {
-      log.warn('Could not complete discovery. Some options may need manual configuration.');
+      log.warn('Could not complete discovery. Lot preferences may need manual configuration.');
     }
 
     if (discoveredLots.length > 1) {
@@ -77,33 +75,6 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
       config.lotPreferences = undefined;
     }
 
-    // License plate
-    const platePrompt = config.defaultPlate
-      ? `License plate (e.g. ABC1234) [${config.defaultPlate}]: `
-      : 'License plate (e.g. ABC1234): ';
-    const plateAnswer = await prompt(rl, platePrompt);
-    if (plateAnswer) {
-      config.defaultPlate = plateAnswer.toUpperCase();
-    }
-
-    // Reservation type
-    const validTypes = discoveredTypes.length > 0 ? discoveredTypes : [...RESERVATION_TYPES];
-
-    if (discoveredTypes.length === 1) {
-      config.defaultType = discoveredTypes[0];
-      log.info(`Single parking type available: ${discoveredTypes[0]}`);
-    } else {
-      const currentType = config.defaultType || 'none';
-      const typeAnswer = await prompt(rl, `Preferred type (${validTypes.join('/')}) [${currentType}]: `);
-      if (typeAnswer) {
-        if (!validTypes.includes(typeAnswer as ReservationType)) {
-          log.warn(`Invalid type: "${typeAnswer}". Keeping previous value.`);
-        } else {
-          config.defaultType = typeAnswer as ReservationType;
-        }
-      }
-    }
-
     saveConfig(config);
 
     console.log();
@@ -113,8 +84,6 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
       const lotList = config.lotPreferences.map((l, i) => `${i + 1}. ${l}`).join('  ');
       console.log(`  Lots:   ${lotList}`);
     }
-    console.log(`  Plate:  ${config.defaultPlate || 'none'}`);
-    console.log(`  Type:   ${config.defaultType || 'none'}`);
 
     // Prompt for authentication
     console.log();

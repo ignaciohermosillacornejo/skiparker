@@ -27,7 +27,7 @@ describe('watch command (E2E)', () => {
   });
 
   it('exits immediately when date is already available', async () => {
-    const proc = spawn('node', [CLI, 'watch', '--date', AVAILABLE_DATE, '--type', 'carpool', '--interval', '3', '--jitter', '0', '--verbose'], {
+    const proc = spawn('node', [CLI, 'watch', '--date', AVAILABLE_DATE, '--interval', '3', '--jitter', '0', '--verbose'], {
       env: { ...process.env, SKI_PARKER_BASE_URL: getMockUrl() },
     });
 
@@ -50,47 +50,13 @@ describe('watch command (E2E)', () => {
     expect(stdout).toContain('AVAILABLE');
   }, 60000);
 
-  it('auto-books when availability is detected', async () => {
-    // Start with date unavailable
-    await setScenarioViaApi({
-      dates: {},
-    });
-
-    const proc = spawn('node', [CLI, 'watch', '--date', UNAVAILABLE_DATE, '--type', 'carpool', '--interval', '3', '--jitter', '0', '--auto-book', '--plate', 'CFH2637', '--verbose'], {
-      env: { ...process.env, SKI_PARKER_BASE_URL: getMockUrl() },
-    });
-
-    let stdout = '';
-    proc.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
-    proc.stderr.on('data', (data: Buffer) => { stdout += data.toString(); });
-
-    // After 2s, make the date available
-    await new Promise(r => setTimeout(r, 2000));
-    await setScenarioViaApi({ dates: { [UNAVAILABLE_DATE]: 'available' } });
-
-    const exitCode = await new Promise<number>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        proc.kill();
-        reject(new Error(`watch did not exit in time. stdout: ${stdout}`));
-      }, 60000);
-      proc.on('close', (code) => {
-        clearTimeout(timeout);
-        resolve(code ?? 1);
-      });
-    });
-
-    expect(exitCode).toBe(0);
-    expect(stdout).toContain('AVAILABLE');
-    expect(stdout).toContain('Booked');
-  }, 90000);
-
   it('detects availability change during polling', async () => {
     // Start with date unavailable
     await setScenarioViaApi({
       dates: {},
     });
 
-    const proc = spawn('node', [CLI, 'watch', '--date', UNAVAILABLE_DATE, '--type', 'carpool', '--interval', '3', '--jitter', '0', '--verbose'], {
+    const proc = spawn('node', [CLI, 'watch', '--date', UNAVAILABLE_DATE, '--interval', '3', '--jitter', '0', '--verbose'], {
       env: { ...process.env, SKI_PARKER_BASE_URL: getMockUrl() },
     });
 

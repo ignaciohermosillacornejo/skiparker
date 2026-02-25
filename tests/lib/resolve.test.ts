@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { resolveDate, resolveType, resolvePlate, resolveResortUrl } from '../../src/lib/resolve.js';
+import { resolveDate, resolveResortUrl } from '../../src/lib/resolve.js';
 import type { Config } from '../../src/types.js';
 
 const mockConfig = (overrides: Partial<Config> = {}): Config => ({
@@ -24,60 +24,6 @@ describe('resolveDate', () => {
 
   it('throws on past date', () => {
     expect(() => resolveDate('2020-01-01')).toThrow('in the past');
-  });
-});
-
-describe('resolveType', () => {
-  it('returns flag value when provided', () => {
-    const config = mockConfig({ defaultType: 'carpool' });
-    expect(resolveType('paid', config)).toBe('paid');
-  });
-
-  it('falls back to config default when no flag', () => {
-    const config = mockConfig({ defaultType: 'carpool' });
-    expect(resolveType(undefined, config)).toBe('carpool');
-  });
-
-  it('throws when no type available', () => {
-    const config = mockConfig();
-    expect(() => resolveType(undefined, config)).toThrow('No type configured');
-  });
-
-  it('throws on invalid type', () => {
-    const config = mockConfig();
-    expect(() => resolveType('express', config)).toThrow('Invalid type: express');
-  });
-
-  it('accepts paid type', () => {
-    const config = mockConfig();
-    expect(resolveType('paid', config)).toBe('paid');
-  });
-
-  it('accepts carpool type', () => {
-    const config = mockConfig();
-    expect(resolveType('carpool', config)).toBe('carpool');
-  });
-
-  it('accepts free type', () => {
-    const config = mockConfig();
-    expect(resolveType('free', config)).toBe('free');
-  });
-});
-
-describe('resolvePlate', () => {
-  it('returns flag value when provided', () => {
-    const config = mockConfig({ defaultPlate: 'ABC123' });
-    expect(resolvePlate('XYZ789', config)).toBe('XYZ789');
-  });
-
-  it('falls back to config default when no flag', () => {
-    const config = mockConfig({ defaultPlate: 'ABC123' });
-    expect(resolvePlate(undefined, config)).toBe('ABC123');
-  });
-
-  it('throws when no plate available', () => {
-    const config = mockConfig();
-    expect(() => resolvePlate(undefined, config)).toThrow('No plate configured');
   });
 });
 
