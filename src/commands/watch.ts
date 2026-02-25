@@ -2,37 +2,25 @@ import ora from 'ora';
 import chalk from 'chalk';
 import type { WatchOptions } from '../types.js';
 import { createBrowser, hasSession, closeBrowser, checkSessionStatus } from '../lib/browser.js';
-import { checkAvailability, bookSpot } from '../lib/scraper.js';
-import { notifyAvailable, notifyBooked, notifyError } from '../lib/notify.js';
+import { checkAvailability } from '../lib/scraper.js';
+import { notifyAvailable } from '../lib/notify.js';
 import { log, sleep, jitter as jitterFn } from '../lib/utils.js';
 
 export async function watchCommand(options: WatchOptions): Promise<void> {
   const {
     date,
-    type,
     interval,
     jitter,
     notify,
     sound,
-    autoBook,
     headed,
-    dryRun,
     verbose,
-    plate,
     resortUrl,
     lotPreferences,
   } = options;
 
-  log.info(`Watching for ${type} parking on ${date}`);
+  log.info(`Watching for parking availability on ${date}`);
   log.info(`Checking every ${interval}s (±${jitter}s jitter)`);
-
-  if (autoBook) {
-    log.info(`Auto-book enabled with plate: ${plate}`);
-  }
-
-  if (dryRun) {
-    log.warn('Dry run mode - will not actually book');
-  }
 
   console.log();
   console.log(chalk.gray('Press Ctrl+C to stop'));
@@ -74,32 +62,19 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
 
       try {
         const result = await checkAvailability(page, date, verbose, resortUrl, lotPreferences);
-        const available = result.available[type];
 
-        if (available) {
-          spinner.succeed(`${type.toUpperCase()} parking AVAILABLE!`);
+        if (result.status === 'available') {
+          spinner.succeed(`Parking AVAILABLE for ${date}!`);
 
           if (notify) {
-            notifyAvailable(date, type, { desktop: true, sound });
+            notifyAvailable(date, { desktop: true, sound });
           }
 
-          if (autoBook && plate) {
-            log.info('Auto-booking...');
-            const bookResult = await bookSpot(page, date, type, plate, dryRun, verbose, resortUrl, lotPreferences);
-
-            if (bookResult.success) {
-              log.success(`Booked! Confirmation: ${bookResult.confirmationNumber}`);
-              notifyBooked(date, type, bookResult.confirmationNumber);
-            } else {
-              log.error(`Booking failed: ${bookResult.error}`);
-              notifyError(`Booking failed: ${bookResult.error}`);
-            }
-          }
-
+          log.info('Book now at the resort site.');
           break; // Exit loop on availability
         }
 
-        spinner.info(`Check #${checkCount}: ${type} not available - ${result.timestamp.toLocaleTimeString()}`);
+        spinner.info(`Check #${checkCount}: ${result.status} - ${result.timestamp.toLocaleTimeString()}`);
 
       } catch (error) {
         spinner.fail(`Check #${checkCount} failed: ${error}`);

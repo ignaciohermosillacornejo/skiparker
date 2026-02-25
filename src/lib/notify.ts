@@ -1,7 +1,5 @@
 import notifier from 'node-notifier';
-import path from 'node:path';
 import { exec } from 'node:child_process';
-import type { ReservationType } from '../types.js';
 
 export interface NotifyOptions {
   desktop?: boolean;
@@ -10,7 +8,6 @@ export interface NotifyOptions {
 
 export function notifyAvailable(
   date: string,
-  type: ReservationType,
   options: NotifyOptions = {}
 ): void {
   const { desktop = true, sound = true } = options;
@@ -18,7 +15,7 @@ export function notifyAvailable(
   if (desktop) {
     notifier.notify({
       title: 'Ski Parker - Spot Available!',
-      message: `${type.toUpperCase()} parking available for ${date}`,
+      message: `Parking available for ${date}! Book now at the resort site.`,
       sound: sound,
       wait: false,
     });
@@ -27,28 +24,6 @@ export function notifyAvailable(
   if (sound) {
     playSound();
   }
-}
-
-export function notifyBooked(
-  date: string,
-  type: ReservationType,
-  confirmationNumber?: string
-): void {
-  notifier.notify({
-    title: 'Ski Parker - Booking Confirmed!',
-    message: `${type.toUpperCase()} parking booked for ${date}${confirmationNumber ? ` (${confirmationNumber})` : ''}`,
-    sound: true,
-    wait: false,
-  });
-}
-
-export function notifyError(message: string): void {
-  notifier.notify({
-    title: 'Ski Parker - Error',
-    message,
-    sound: true,
-    wait: false,
-  });
 }
 
 function playSound(): void {

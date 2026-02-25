@@ -73,16 +73,13 @@ describe('CLI entry point (index.ts)', () => {
       const { stdout } = runCli('--help');
       expect(stdout).toContain('auth');
       expect(stdout).toContain('setup');
-      expect(stdout).toContain('check');
       expect(stdout).toContain('watch');
-      expect(stdout).toContain('book');
       expect(stdout).toContain('bug');
     });
 
     it('shows command descriptions', () => {
       const { stdout } = runCli('--help');
       expect(stdout).toContain('Authenticate with HONK');
-      expect(stdout).toContain('Check parking availability');
       expect(stdout).toContain('Report a bug');
     });
   });
@@ -114,44 +111,18 @@ describe('CLI entry point (index.ts)', () => {
   });
 
   describe('missing required options', () => {
-    it('check requires --date', () => {
-      const { stdout, exitCode } = runCli('check');
-      expect(exitCode).toBe(1);
-      expect(stdout).toContain("required option '-d, --date <date>'");
-    });
-
     it('watch requires --date', () => {
       const { stdout, exitCode } = runCli('watch');
-      expect(exitCode).toBe(1);
-      expect(stdout).toContain("required option '-d, --date <date>'");
-    });
-
-    it('book requires --date', () => {
-      const { stdout, exitCode } = runCli('book');
       expect(exitCode).toBe(1);
       expect(stdout).toContain("required option '-d, --date <date>'");
     });
   });
 
   describe('command-specific help', () => {
-    it('check --help shows examples', () => {
-      const { stdout } = runCli('check --help');
-      expect(stdout).toContain('Examples:');
-      expect(stdout).toContain('--date');
-      expect(stdout).toContain('--lot');
-    });
-
     it('watch --help shows config defaults info', () => {
       const { stdout } = runCli('watch --help');
       expect(stdout).toContain('Config defaults');
-      expect(stdout).toContain('--auto-book');
       expect(stdout).toContain('--interval');
-    });
-
-    it('book --help shows examples', () => {
-      const { stdout } = runCli('book --help');
-      expect(stdout).toContain('Examples:');
-      expect(stdout).toContain('--dry-run');
     });
 
     it('bug --help shows options', () => {
