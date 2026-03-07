@@ -1,5 +1,5 @@
 import notifier from 'node-notifier';
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 
 export interface NotifyOptions {
   desktop?: boolean;
@@ -27,16 +27,15 @@ export function notifyAvailable(
 }
 
 function playSound(): void {
-  // macOS system sound
   if (process.platform === 'darwin') {
-    exec('afplay /System/Library/Sounds/Glass.aiff');
-  }
-  // Windows
-  else if (process.platform === 'win32') {
-    exec('powershell -c (New-Object Media.SoundPlayer "C:\\Windows\\Media\\notify.wav").PlaySync()');
-  }
-  // Linux - try paplay first, then aplay
-  else {
-    exec('paplay /usr/share/sounds/freedesktop/stereo/complete.oga 2>/dev/null || aplay /usr/share/sounds/alsa/Front_Center.wav 2>/dev/null');
+    execFile('afplay', ['/System/Library/Sounds/Glass.aiff']);
+  } else if (process.platform === 'win32') {
+    execFile('powershell', ['-c', '(New-Object Media.SoundPlayer "C:\\Windows\\Media\\notify.wav").PlaySync()']);
+  } else {
+    execFile('paplay', ['/usr/share/sounds/freedesktop/stereo/complete.oga'], (err) => {
+      if (err) {
+        execFile('aplay', ['/usr/share/sounds/alsa/Front_Center.wav']);
+      }
+    });
   }
 }
