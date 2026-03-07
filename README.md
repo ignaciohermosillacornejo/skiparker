@@ -7,9 +7,9 @@
 
 > **Beta Software**: This tool is under active development. Please report any issues using `ski-parker bug` or by [opening an issue](https://github.com/ignaciohermosillacornejo/skiparker/issues/new).
 
-Automated CLI for booking ski resort parking on [HONK](https://parking.honkmobile.com/)-powered sites.
+CLI tool that monitors ski resort parking availability on [HONK](https://parking.honkmobile.com/)-powered sites and notifies you when a spot opens up so you can book manually.
 
-HONK is the parking reservation platform used by many ski resorts across North America. This tool automates the process of checking availability, watching for openings, and booking spots.
+HONK is the parking reservation platform used by many ski resorts across North America. This tool watches the calendar for availability changes and sends desktop notifications when parking opens up.
 
 ## Supported Resorts
 
@@ -46,53 +46,34 @@ npm install -g ski-parker
 ## Quick Start
 
 ```bash
-# 1. Configure your resort and preferences
+# 1. Configure your resort and lot preferences
 ski-parker setup
 
 # 2. Authenticate (one-time setup)
 ski-parker auth
 
-# 3. Check availability
-ski-parker check --date 2026-02-15
-
-# 4. Watch for availability
-ski-parker watch --date 2026-02-15 --type paid
-
-# 5. Book immediately
-ski-parker book --date 2026-02-15 --type paid --plate ABC1234
+# 3. Watch for availability — get notified when a spot opens
+ski-parker watch --date 2026-02-15
 ```
+
+When a spot becomes available, you'll get a desktop notification. Then head to the resort's HONK site to book manually.
 
 ## Commands
 
 ### `ski-parker setup`
-Interactive configuration for your resort URL, default plate, and reservation type.
+Interactive configuration for your resort URL and lot preferences.
 
 ### `ski-parker auth`
 Opens a browser window for manual login to HONK. Saves session for future use.
 
-### `ski-parker check`
-Check availability for a specific date.
-```bash
-ski-parker check --date 2026-02-15 [--lot "Zone A"] [--headed] [--verbose]
-```
-
 ### `ski-parker watch`
-Poll for availability until a spot opens.
+Monitor a date for parking availability. Sends a desktop notification when a spot opens.
 ```bash
-ski-parker watch --date 2026-02-15 --type paid \
+ski-parker watch --date 2026-02-15 \
   [--lot "Zone A"] \
   [--interval 60] [--jitter 20] \
-  [--auto-book --plate ABC1234] \
   [--no-notify] [--no-sound] \
-  [--headed] [--dry-run] [--verbose]
-```
-
-### `ski-parker book`
-Book a spot immediately if available.
-```bash
-ski-parker book --date 2026-02-15 --type paid --plate ABC1234 \
-  [--lot "Zone A"] \
-  [--headed] [--dry-run] [--verbose]
+  [--headed] [--verbose]
 ```
 
 ### `ski-parker bug`
@@ -106,15 +87,13 @@ ski-parker bug --no-open    # Prints URL instead
 
 | Option | Description |
 |--------|-------------|
-| `-d, --date <date>` | Date to check/book (YYYY-MM-DD) |
-| `-t, --type <type>` | Reservation type: `paid` or `carpool` |
+| `-d, --date <date>` | Date to watch (YYYY-MM-DD) |
 | `-l, --lot <lots...>` | Lot preference(s) for multi-lot resorts |
-| `-p, --plate <plate>` | License plate number |
 | `-i, --interval <sec>` | Poll interval in seconds (default: 60) |
 | `-j, --jitter <sec>` | Random jitter added to interval (default: 20) |
-| `--auto-book` | Automatically book when available |
+| `--no-notify` | Disable desktop notifications |
+| `--no-sound` | Disable sound notifications |
 | `--headed` | Show browser window |
-| `--dry-run` | Stop before final confirmation |
 | `-v, --verbose` | Enable verbose logging |
 
 ## Multi-Lot Resorts
@@ -122,10 +101,10 @@ ski-parker bug --no-open    # Prints URL instead
 Some resorts (like Whistler) have multiple parking zones. Use `--lot` to specify your preference:
 
 ```bash
-ski-parker book --date 2026-02-15 --type paid --plate ABC1234 --lot "CREEKSIDE" "UPPER LOTS"
+ski-parker watch --date 2026-02-15 --lot "CREEKSIDE" "UPPER LOTS"
 ```
 
-The tool will try lots in order until one has availability.
+The tool will check the preferred lot first.
 
 ## Configuration
 
@@ -133,9 +112,7 @@ Config file: `~/.ski-parker/config.json`
 
 ```json
 {
-  "resortUrl": "https://parking.honkmobile.com/zones/stevens-pass",
-  "defaultPlate": "ABC1234",
-  "defaultType": "paid",
+  "resortUrl": "https://reservenski.parkstevenspass.com",
   "lotPreferences": ["CREEKSIDE", "UPPER LOTS"],
   "pollInterval": 60,
   "jitter": 20
@@ -169,7 +146,7 @@ Or [open an issue](https://github.com/ignaciohermosillacornejo/skiparker/issues/
 ### Testing
 
 ```bash
-# Unit tests (91%+ coverage)
+# Unit tests
 npm test
 
 # E2E tests with mock HONK server

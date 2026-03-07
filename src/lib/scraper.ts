@@ -1,4 +1,4 @@
-import type { Page, ElementHandle } from 'rebrowser-playwright';
+import type { Page, ElementHandle } from 'playwright-core';
 import type { AvailabilityResult } from '../types.js';
 import { getUrls } from '../constants.js';
 import { sleep, log } from './utils.js';
@@ -141,6 +141,12 @@ export async function checkAvailability(
       dateElement = await findVisible(page, dateSelector);
     }
     attempts++;
+  }
+
+  if (!dateElement) {
+    result.status = 'unavailable';
+    log.verbose(`Date ${dateStr} not found in calendar after navigation`, verbose);
+    return result;
   }
 
   // Get the date status from calendar colors
