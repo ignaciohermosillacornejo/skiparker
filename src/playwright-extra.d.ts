@@ -1,5 +1,5 @@
 declare module 'playwright-extra' {
-  import type { BrowserType, Browser, BrowserContext, LaunchOptions } from 'playwright';
+  import type { BrowserType, Browser, BrowserContext, LaunchOptions } from 'playwright-core';
 
   interface PersistentContextOptions extends LaunchOptions {
     headless?: boolean;
