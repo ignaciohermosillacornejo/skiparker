@@ -9,6 +9,15 @@ import {
   parseAvailabilityFromStyle,
 } from './selectors.js';
 
+// Timing and retry constants
+const CALENDAR_LOAD_TIMEOUT_MS = 15000;
+const CALENDAR_RENDER_DELAY_MS = 500;
+const SPA_RENDER_DELAY_MS = 1500;
+const LOT_SELECT_DELAY_MS = 1500;
+const LOT_DISCOVERY_DELAY_MS = 2000;
+const MONTH_NAVIGATION_DELAY_MS = 500;
+const MAX_CALENDAR_NAVIGATION_ATTEMPTS = 6;
+
 // Centralized selectors — stable patterns only (no CSS module hashes)
 const SELECTORS = {
   // Mobiscroll Calendar — library classes, very stable
@@ -42,7 +51,7 @@ export async function selectLot(page: Page, lotName: string, verbose = false): P
     return false;
   }
   await lotCard.click();
-  await sleep(1500);
+  await sleep(LOT_SELECT_DELAY_MS);
   return true;
 }
 
@@ -69,14 +78,14 @@ async function selectLotIfNeeded(page: Page, lotPreferences: string[] | undefine
   const lotName = (await firstLot.textContent())?.trim() || 'first lot';
   log.verbose(`Auto-selecting lot: ${lotName}`, verbose);
   await firstLot.click();
-  await sleep(1500);
+  await sleep(LOT_SELECT_DELAY_MS);
 }
 
 export async function navigateToReservations(page: Page, verbose = false, resortUrl?: string): Promise<void> {
   log.verbose('Navigating to reservation page', verbose);
   const urls = getUrls(resortUrl);
   await page.goto(urls.BASE + '/select-parking', { waitUntil: 'networkidle' });
-  await sleep(1500); // Wait for SPA and Mobiscroll calendar to render
+  await sleep(SPA_RENDER_DELAY_MS);
 }
 
 export async function getDateAvailability(
@@ -124,20 +133,20 @@ export async function checkAvailability(
   };
 
   // Wait for calendar and check date status (no clicking — avoids Turnstile)
-  await page.waitForSelector(SELECTORS.calendar, { timeout: 15000 });
-  await sleep(500);
+  await page.waitForSelector(SELECTORS.calendar, { timeout: CALENDAR_LOAD_TIMEOUT_MS });
+  await sleep(CALENDAR_RENDER_DELAY_MS);
 
   // Navigate to the correct month if needed
   const dateSelector = SELECTORS.calendarDay(dateStr);
   let dateElement = await findVisible(page, dateSelector);
   let attempts = 0;
-  while (!dateElement && attempts < 6) {
+  while (!dateElement && attempts < MAX_CALENDAR_NAVIGATION_ATTEMPTS) {
     const nextBtn = await page.$(SELECTORS.calendarNextBtn);
     if (nextBtn) {
       const isDisabled = await nextBtn.getAttribute('disabled');
       if (isDisabled) break;
       await nextBtn.click();
-      await sleep(500);
+      await sleep(MONTH_NAVIGATION_DELAY_MS);
       dateElement = await findVisible(page, dateSelector);
     }
     attempts++;
@@ -159,7 +168,7 @@ export async function checkAvailability(
 
 export async function discoverLots(page: Page, resortUrl: string, verbose = false): Promise<string[]> {
   await page.goto(`${resortUrl}/select-parking`, { waitUntil: 'networkidle' });
-  await sleep(2000);
+  await sleep(LOT_DISCOVERY_DELAY_MS);
   const lotCards = await page.$$(SELECTORS.lotDiscovery);
   const lots: string[] = [];
   for (const card of lotCards) {
