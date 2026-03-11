@@ -1,6 +1,6 @@
 {
   "name": "ski-parker",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Automated HONK-based ski resort parking reservation CLI",
   "author": "Ignacio Hermosilla <hello@ignaciohermosilla.com>",
   "license": "MIT",
