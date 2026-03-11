@@ -12,7 +12,7 @@ import { resolveDate, resolveResortUrl } from './lib/resolve.js';
 import { DEFAULTS, PATHS } from './constants.js';
 import { log } from './lib/utils.js';
 
-const VERSION = '0.3.1';
+const VERSION = '0.4.0';
 const config = loadConfig();
 const program = new Command();
 
