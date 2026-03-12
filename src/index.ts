@@ -32,7 +32,7 @@ program
 // Auth command
 program
   .command('auth')
-  .description('Authenticate with HONK (opens browser for manual login)')
+  .description('Authenticate with resort parking site (opens browser for manual login)')
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action(async (opts) => {
     await authCommand({ verbose: opts.verbose, resortUrl: config.resortUrl });

@@ -3,14 +3,42 @@ import os from 'node:os';
 
 export const DEFAULT_RESORT_URL = 'https://reservenski.parkstevenspass.com';
 
+/** Crystal Mountain Resort parking (non-HONK platform). */
+export const CRYSTAL_MOUNTAIN_URL = 'https://parking.crystalmountainresort.com';
+
+export type Platform = 'honk' | 'crystal';
+
+/**
+ * Detect platform from resort URL. Used to choose scraper flow and URL paths.
+ */
+export function getPlatform(resortUrl?: string): Platform {
+  const raw = process.env.SKI_PARKER_BASE_URL || resortUrl || DEFAULT_RESORT_URL;
+  const url = raw.replace(/\/+$/, '');
+  if (url.includes('crystalmountainresort.com')) return 'crystal';
+  return 'honk';
+}
+
 export function getUrls(resortUrl?: string) {
   // Environment variable takes precedence (for testing)
   const raw = process.env.SKI_PARKER_BASE_URL || resortUrl || DEFAULT_RESORT_URL;
   const base = raw.replace(/\/+$/, ''); // strip trailing slashes
+  const platform = getPlatform(resortUrl);
+
+  if (platform === 'crystal') {
+    return {
+      BASE: base,
+      LOGIN: `${base}/login`,
+      PROMO: `${base}/login`, // Crystal uses login for account
+      /** Crystal reservations are on the main page (no /select-parking). */
+      RESERVATIONS: base,
+    };
+  }
+
   return {
     BASE: base,
     LOGIN: `${base}/login`,
     PROMO: `${base}/code`,
+    RESERVATIONS: `${base}/select-parking`,
   };
 }
 

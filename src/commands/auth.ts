@@ -23,7 +23,7 @@ export async function authCommand(options: AuthOptions): Promise<void> {
       return;
     }
 
-    spinner.info('Please log in to your HONK account in the browser window.');
+    spinner.info('Please log in to the resort parking site in the browser window.');
     spinner.start('Waiting for login...');
 
     const loggedIn = await waitForLogin(page, options.verbose, options.resortUrl);

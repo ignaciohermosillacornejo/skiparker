@@ -1,6 +1,6 @@
 import type { Page, ElementHandle } from 'playwright-core';
 import type { AvailabilityResult } from '../types.js';
-import { getUrls } from '../constants.js';
+import { getUrls, getPlatform } from '../constants.js';
 import { sleep, log } from './utils.js';
 import {
   buildCalendarDaySelector,
@@ -8,6 +8,7 @@ import {
   buildLotDiscoverySelector,
   parseAvailabilityFromStyle,
 } from './selectors.js';
+import * as crystalScraper from './scraper-crystal.js';
 
 // Timing and retry constants
 const CALENDAR_LOAD_TIMEOUT_MS = 15000;
@@ -82,9 +83,12 @@ async function selectLotIfNeeded(page: Page, lotPreferences: string[] | undefine
 }
 
 export async function navigateToReservations(page: Page, verbose = false, resortUrl?: string): Promise<void> {
+  if (getPlatform(resortUrl) === 'crystal') {
+    return crystalScraper.navigateToReservations(page, verbose, resortUrl);
+  }
   log.verbose('Navigating to reservation page', verbose);
   const urls = getUrls(resortUrl);
-  await page.goto(urls.BASE + '/select-parking', { waitUntil: 'networkidle' });
+  await page.goto(urls.RESERVATIONS, { waitUntil: 'networkidle' });
   await sleep(SPA_RENDER_DELAY_MS);
 }
 
@@ -119,6 +123,10 @@ export async function checkAvailability(
   resortUrl?: string,
   lotPreferences?: string[],
 ): Promise<AvailabilityResult> {
+  if (getPlatform(resortUrl) === 'crystal') {
+    return crystalScraper.checkAvailability(page, dateStr, verbose, resortUrl, lotPreferences);
+  }
+
   log.verbose(`Checking availability for ${dateStr}`, verbose);
 
   await navigateToReservations(page, verbose, resortUrl);
@@ -167,7 +175,11 @@ export async function checkAvailability(
 }
 
 export async function discoverLots(page: Page, resortUrl: string, verbose = false): Promise<string[]> {
-  await page.goto(`${resortUrl}/select-parking`, { waitUntil: 'networkidle' });
+  if (getPlatform(resortUrl) === 'crystal') {
+    return crystalScraper.discoverLots(page, resortUrl, verbose);
+  }
+  const urls = getUrls(resortUrl);
+  await page.goto(urls.RESERVATIONS, { waitUntil: 'networkidle' });
   await sleep(LOT_DISCOVERY_DELAY_MS);
   const lotCards = await page.$$(SELECTORS.lotDiscovery);
   const lots: string[] = [];
@@ -180,6 +192,9 @@ export async function discoverLots(page: Page, resortUrl: string, verbose = fals
 }
 
 export async function waitForLogin(page: Page, verbose = false, resortUrl?: string): Promise<boolean> {
+  if (getPlatform(resortUrl) === 'crystal') {
+    return crystalScraper.waitForLogin(page, verbose, resortUrl);
+  }
   log.verbose('Waiting for login...', verbose);
 
   const urls = getUrls(resortUrl);

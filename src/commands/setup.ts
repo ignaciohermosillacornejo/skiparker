@@ -87,7 +87,7 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
 
     // Prompt for authentication
     console.log();
-    const authAnswer = await prompt(rl, 'Authenticate with HONK now? (Y/n): ');
+    const authAnswer = await prompt(rl, 'Authenticate now? (Y/n): ');
     const shouldAuth = !authAnswer || authAnswer.toLowerCase() === 'y' || authAnswer.toLowerCase() === 'yes';
 
     rl.close();

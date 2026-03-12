@@ -7,11 +7,20 @@
 
 > **Beta Software**: This tool is under active development. Please report any issues using `ski-parker bug` or by [opening an issue](https://github.com/ignaciohermosillacornejo/skiparker/issues/new).
 
-CLI tool that monitors ski resort parking availability on [HONK](https://parking.honkmobile.com/)-powered sites and notifies you when a spot opens up so you can book manually.
+CLI tool that monitors ski resort parking availability and notifies you when a spot opens up so you can book manually. Supports **HONK**-powered sites and **Crystal Mountain Resort** (separate platform).
 
-HONK is the parking reservation platform used by many ski resorts across North America. This tool watches the calendar for availability changes and sends desktop notifications when parking opens up.
+HONK is the parking reservation platform used by many ski resorts across North America. Crystal Mountain (WA) uses its own parking site. The tool watches the calendar for availability changes and sends desktop notifications when parking opens up.
 
 ## Supported Resorts
+
+### Crystal Mountain (WA)
+| Resort | URL | Platform |
+|--------|-----|----------|
+| Crystal Mountain | [parking.crystalmountainresort.com](https://parking.crystalmountainresort.com/) | Crystal |
+
+Use `resortUrl: "https://parking.crystalmountainresort.com"` in config. No lot selection (single product).
+
+### HONK Reserve 'N Ski (13 portals)
 
 Validated against all 13 HONK Reserve 'N Ski portals:
 
@@ -31,7 +40,7 @@ Validated against all 13 HONK Reserve 'N Ski portals:
 | Alta | UT | reserve.altaparking.com | Single-lot |
 | Whistler Blackcomb | BC | reservenski.whistlerblackcombparking.com | Multi-lot |
 
-See [docs/honk-resorts-research.md](docs/honk-resorts-research.md) for detailed resort information including pricing, carpool rules, and edge cases.
+See [docs/honk-resorts-research.md](docs/honk-resorts-research.md) for detailed HONK resort information including pricing, carpool rules, and edge cases.
 
 ## Installation
 
@@ -119,6 +128,15 @@ Config file: `~/.ski-parker/config.json`
 }
 ```
 
+For Crystal Mountain, use:
+```json
+{
+  "resortUrl": "https://parking.crystalmountainresort.com",
+  "pollInterval": 60,
+  "jitter": 20
+}
+```
+
 ## Troubleshooting
 
 ### Session expired
@@ -161,14 +179,16 @@ npx tsx scripts/validate-selectors.ts
 ```
 src/
   lib/
-    selectors.ts    # Pure selector functions (unit tested)
-    scraper.ts      # Browser automation (e2e tested)
-    config.ts       # Configuration management
-    utils.ts        # Utility functions
+    selectors.ts       # HONK selector functions (unit tested)
+    selectors-crystal.ts  # Crystal Mountain selectors
+    scraper.ts        # Browser automation; dispatches to HONK or Crystal
+    scraper-crystal.ts   # Crystal Mountain flow
+    config.ts         # Configuration management
+    utils.ts          # Utility functions
 tests/
-  lib/              # Unit tests
-  e2e/              # End-to-end tests
-  mock-server/      # Mock HONK server for e2e
+  lib/                # Unit tests
+  e2e/                # End-to-end tests
+  mock-server/        # Mock HONK server for e2e
 scripts/
-  validate-selectors.ts  # Test selectors against real sites
+  validate-selectors.ts  # Test selectors against real HONK sites
 ```

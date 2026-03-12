@@ -55,14 +55,14 @@ describe('parseAvailabilityFromStyle', () => {
 });
 
 describe('buildCalendarDaySelector', () => {
-  it('builds selector with formatted aria-label', () => {
+  it('builds selector with formatted aria-label (commas escaped for CSS)', () => {
     const selector = buildCalendarDaySelector('2026-02-15');
-    expect(selector).toBe('.mbsc-calendar-day-text[aria-label="Sunday, February 15, 2026"]');
+    expect(selector).toBe('.mbsc-calendar-day-text[aria-label="Sunday\\, February 15\\, 2026"]');
   });
 
   it('handles different dates correctly', () => {
     const selector = buildCalendarDaySelector('2026-03-21');
-    expect(selector).toBe('.mbsc-calendar-day-text[aria-label="Saturday, March 21, 2026"]');
+    expect(selector).toBe('.mbsc-calendar-day-text[aria-label="Saturday\\, March 21\\, 2026"]');
   });
 });
 

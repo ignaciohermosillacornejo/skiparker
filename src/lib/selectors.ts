@@ -12,6 +12,17 @@ export const CALENDAR_COLORS = {
 export type CalendarColors = typeof CALENDAR_COLORS;
 
 /**
+ * Escape a string for safe use inside a CSS attribute selector [attr="value"].
+ * Commas and other special chars would otherwise break the selector.
+ */
+function escapeCssAttrValue(value: string): string {
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+    return CSS.escape(value);
+  }
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/,/g, '\\,');
+}
+
+/**
  * Format a date string for use in HONK calendar aria-labels.
  * HONK uses Mobiscroll calendar which sets aria-label to full date format.
  *
@@ -53,7 +64,7 @@ export function parseAvailabilityFromStyle(
  */
 export function buildCalendarDaySelector(dateStr: string): string {
   const label = formatDateForAriaLabel(dateStr);
-  return `.mbsc-calendar-day-text[aria-label="${label}"]`;
+  return `.mbsc-calendar-day-text[aria-label="${escapeCssAttrValue(label)}"]`;
 }
 
 /**
