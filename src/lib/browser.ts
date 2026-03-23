@@ -134,15 +134,12 @@ export interface SessionStatus {
  * Returns status including whether session is expiring soon.
  */
 export async function checkSessionStatus(context: BrowserContext): Promise<SessionStatus> {
-  // Skip check when running against mock server
-  if (process.env.SKI_PARKER_BASE_URL) {
-    return { valid: true };
-  }
-
   const cookies = await context.cookies();
 
+  // No cookies is OK — HONK primarily uses localStorage for auth.
+  // Session validity is confirmed by the actual login check, not cookies alone.
   if (cookies.length === 0) {
-    return { valid: false, warning: 'No session cookies found' };
+    return { valid: true };
   }
 
   // Find auth-related cookies (HONK uses various cookie names)
