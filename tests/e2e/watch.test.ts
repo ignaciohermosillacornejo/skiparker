@@ -83,4 +83,39 @@ describe('watch command (E2E)', () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain('AVAILABLE');
   }, 90000);
+
+  it('works without session cookies (localStorage-only auth)', async () => {
+    // This reproduces the reported bug: users got "no session cookies found"
+    // after successful auth because HONK uses localStorage, not cookies.
+    // The watch command should proceed without cookies.
+    await setScenarioViaApi({
+      dates: {
+        [AVAILABLE_DATE]: 'available',
+      },
+    });
+
+    const proc = spawn('node', [CLI, 'watch', '--date', AVAILABLE_DATE, '--interval', '3', '--jitter', '0', '--verbose'], {
+      env: { ...process.env, SKI_PARKER_BASE_URL: getMockUrl() },
+    });
+
+    let stdout = '';
+    proc.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
+    proc.stderr.on('data', (data: Buffer) => { stdout += data.toString(); });
+
+    const exitCode = await new Promise<number>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        proc.kill();
+        reject(new Error(`watch did not exit in time. stdout: ${stdout}`));
+      }, 30000);
+      proc.on('close', (code) => {
+        clearTimeout(timeout);
+        resolve(code ?? 1);
+      });
+    });
+
+    // Should NOT exit with error about "no session cookies found"
+    expect(stdout).not.toContain('No session cookies found');
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain('AVAILABLE');
+  }, 60000);
 });
