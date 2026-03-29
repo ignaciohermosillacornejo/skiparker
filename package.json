@@ -31,7 +31,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
-    "test": "vitest run tests/lib/",
+    "test": "vitest run tests/lib/ tests/resorts/",
     "test:e2e": "vitest run tests/e2e/ --no-file-parallelism --test-timeout 90000",
     "test:all": "vitest run --no-file-parallelism --test-timeout 90000",
     "test:watch": "vitest",

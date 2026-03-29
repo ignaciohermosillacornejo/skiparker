@@ -2,7 +2,7 @@ import { chromium } from 'playwright-extra';
 import type { BrowserContext, Page, Cookie } from 'playwright-core';
 import stealth from 'puppeteer-extra-plugin-stealth';
 import fs from 'node:fs';
-import { PATHS, DEFAULTS, getUrls } from '../constants.js';
+import { PATHS, DEFAULTS } from '../constants.js';
 import { log } from './utils.js';
 import { ensureConfigDir } from './config.js';
 
@@ -108,15 +108,12 @@ export async function saveSession(context: BrowserContext): Promise<void> {
   log.success('Session saved');
 }
 
-export async function isLoggedIn(page: Page, resortUrl?: string): Promise<boolean> {
+export async function isLoggedIn(page: Page, baseUrl?: string): Promise<boolean> {
   try {
-    const urls = getUrls(resortUrl);
-    await page.goto(urls.BASE, { waitUntil: 'networkidle' });
-
-    // If the site redirects to /login, the session is invalid.
-    // If it doesn't redirect, the user is authenticated.
-    const url = page.url();
-    return !url.includes('/login');
+    const url = baseUrl || 'about:blank';
+    await page.goto(url, { waitUntil: 'networkidle' });
+    const currentUrl = page.url();
+    return !currentUrl.includes('/login');
   } catch {
     return false;
   }
