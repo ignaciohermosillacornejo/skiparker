@@ -79,7 +79,7 @@ describe('CLI entry point (index.ts)', () => {
 
     it('shows command descriptions', () => {
       const { stdout } = runCli('--help');
-      expect(stdout).toContain('Authenticate with HONK');
+      expect(stdout).toContain('Authenticate with resort parking site');
       expect(stdout).toContain('Report a bug');
     });
   });

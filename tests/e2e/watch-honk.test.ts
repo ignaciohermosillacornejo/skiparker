@@ -9,7 +9,7 @@ const CLI = path.resolve('dist/index.js');
 const AVAILABLE_DATE = futureDate(7);
 const UNAVAILABLE_DATE = futureDate(10);
 
-describe('watch command (E2E)', () => {
+describe('watch command - Stevens Pass / HONK (E2E)', () => {
   beforeAll(async () => {
     await startMockServer();
   }, 20000);
@@ -20,6 +20,7 @@ describe('watch command (E2E)', () => {
 
   beforeEach(async () => {
     await setScenarioViaApi({
+      platform: 'honk',
       dates: {
         [AVAILABLE_DATE]: 'available',
       },
@@ -28,7 +29,7 @@ describe('watch command (E2E)', () => {
 
   it('exits immediately when date is already available', async () => {
     const proc = spawn('node', [CLI, 'watch', '--date', AVAILABLE_DATE, '--interval', '3', '--jitter', '0', '--verbose'], {
-      env: { ...process.env, SKI_PARKER_BASE_URL: getMockUrl() },
+      env: { ...process.env, SKI_PARKER_BASE_URL: getMockUrl(), SKI_PARKER_PLATFORM: 'stevens-pass' },
     });
 
     let stdout = '';
@@ -53,11 +54,12 @@ describe('watch command (E2E)', () => {
   it('detects availability change during polling', async () => {
     // Start with date unavailable
     await setScenarioViaApi({
+      platform: 'honk',
       dates: {},
     });
 
     const proc = spawn('node', [CLI, 'watch', '--date', UNAVAILABLE_DATE, '--interval', '3', '--jitter', '0', '--verbose'], {
-      env: { ...process.env, SKI_PARKER_BASE_URL: getMockUrl() },
+      env: { ...process.env, SKI_PARKER_BASE_URL: getMockUrl(), SKI_PARKER_PLATFORM: 'stevens-pass' },
     });
 
     let stdout = '';
@@ -66,7 +68,7 @@ describe('watch command (E2E)', () => {
 
     // After 2s, make the date available
     await new Promise(r => setTimeout(r, 2000));
-    await setScenarioViaApi({ dates: { [UNAVAILABLE_DATE]: 'available' } });
+    await setScenarioViaApi({ platform: 'honk', dates: { [UNAVAILABLE_DATE]: 'available' } });
 
     // Wait for process to exit (it breaks out of the loop on availability)
     const exitCode = await new Promise<number>((resolve, reject) => {
@@ -89,13 +91,14 @@ describe('watch command (E2E)', () => {
     // after successful auth because HONK uses localStorage, not cookies.
     // The watch command should proceed without cookies.
     await setScenarioViaApi({
+      platform: 'honk',
       dates: {
         [AVAILABLE_DATE]: 'available',
       },
     });
 
     const proc = spawn('node', [CLI, 'watch', '--date', AVAILABLE_DATE, '--interval', '3', '--jitter', '0', '--verbose'], {
-      env: { ...process.env, SKI_PARKER_BASE_URL: getMockUrl() },
+      env: { ...process.env, SKI_PARKER_BASE_URL: getMockUrl(), SKI_PARKER_PLATFORM: 'stevens-pass' },
     });
 
     let stdout = '';
