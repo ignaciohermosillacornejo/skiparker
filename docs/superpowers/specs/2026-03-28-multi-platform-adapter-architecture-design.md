@@ -42,7 +42,7 @@ interface ResortDescriptor {
   calendar: {
     container: string;           // CSS selector for calendar root
     dayCellTemplate: string;     // selector template with {date} placeholder
-    dateFormat: 'aria-label-long' | 'data-date-iso' | 'data-date-ymd';
+    dateFormat: 'aria-label-long' | 'data-date-iso';
     navLeft?: string;
     navRight?: string;
     maxNavigationAttempts: number;
@@ -87,7 +87,6 @@ Rather than putting a function on the descriptor (which would complicate auto-ge
 - `dateFormat` — tells the engine how to format the `YYYY-MM-DD` date string before substituting it into the template:
   - `'aria-label-long'`: `"Sunday, March 20, 2026"` (HONK/Mobiscroll)
   - `'data-date-iso'`: `"2026-03-20"` (Crystal, ISO prefix match)
-  - `'data-date-ymd'`: `"2026-03-20"` (same as ISO, but available if a site uses a different prefix format)
 
 The engine's `buildDayCellSelector(descriptor, dateStr)` handles the formatting and substitution. This keeps descriptors as pure data that the ingestion agent can generate without producing executable code.
 
@@ -220,7 +219,7 @@ const result = await engine.checkAvailability(page, resort, dateStr, lotPreferen
 - `src/lib/selectors-crystal.ts` — becomes Crystal descriptor
 - `getPlatform()` and all `if (platform === 'crystal')` branching in `scraper.ts`
 - `CALENDAR_COLORS` and `parseAvailabilityFromStyle` from `selectors.ts` — becomes HONK availability rules
-- `selectors.ts` helper functions move into HONK descriptor's `dayCell` implementation
+- `selectors.ts` helper functions (`formatDateForAriaLabel`, `buildCalendarDaySelector`) move into HONK descriptor fields and engine formatters
 
 ---
 
