@@ -1,12 +1,24 @@
 import ora from 'ora';
 import chalk from 'chalk';
-import type { WatchOptions } from '../types.js';
+import type { ResolvedResort } from '../resorts/types.js';
 import { createBrowser, hasSession, closeBrowser, checkSessionStatus } from '../lib/browser.js';
-import { checkAvailability } from '../lib/scraper.js';
+import { ScraperEngine } from '../resorts/index.js';
 import { notifyAvailable } from '../lib/notify.js';
 import { log, sleep, jitter as jitterFn } from '../lib/utils.js';
 
-export async function watchCommand(options: WatchOptions): Promise<void> {
+export interface WatchCommandOptions {
+  date: string;
+  interval: number;
+  jitter: number;
+  notify: boolean;
+  sound: boolean;
+  headed: boolean;
+  verbose: boolean;
+  resort: ResolvedResort;
+  lotPreferences?: string[];
+}
+
+export async function watchCommand(options: WatchCommandOptions): Promise<void> {
   const {
     date,
     interval,
@@ -15,7 +27,7 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
     sound,
     headed,
     verbose,
-    resortUrl,
+    resort,
     lotPreferences,
   } = options;
 
@@ -30,7 +42,6 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
   let checkCount = 0;
   let isRunning = true;
 
-  // Handle graceful shutdown
   process.on('SIGINT', () => {
     isRunning = false;
     log.info('Shutting down...');
@@ -45,7 +56,6 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
     const page = await context.newPage();
 
     if (hasSession()) {
-      // Check session expiration
       const sessionStatus = await checkSessionStatus(context);
       if (!sessionStatus.valid) {
         log.error(sessionStatus.warning || 'Session expired. Run `ski-parker auth` first.');
@@ -56,12 +66,14 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
       }
     }
 
+    const engine = new ScraperEngine({ verbose });
+
     while (isRunning) {
       checkCount++;
       const spinner = ora(`Check #${checkCount}...`).start();
 
       try {
-        const result = await checkAvailability(page, date, verbose, resortUrl, lotPreferences);
+        const result = await engine.checkAvailability(page, resort, date, lotPreferences);
 
         if (result.status === 'available') {
           spinner.succeed(`Parking AVAILABLE for ${date}!`);
@@ -71,7 +83,7 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
           }
 
           log.info('Book now at the resort site.');
-          break; // Exit loop on availability
+          break;
         }
 
         spinner.info(`Check #${checkCount}: ${result.status} - ${result.timestamp.toLocaleTimeString()}`);
@@ -81,7 +93,6 @@ export async function watchCommand(options: WatchOptions): Promise<void> {
         log.verbose(String(error), verbose);
       }
 
-      // Wait with jitter before next check
       const waitMs = jitterFn(interval * 1000, jitter * 1000);
       log.verbose(`Next check in ${Math.round(waitMs / 1000)}s`, verbose);
       await sleep(waitMs);

@@ -3,7 +3,8 @@ import { loadConfig, saveConfig } from '../lib/config.js';
 import { log } from '../lib/utils.js';
 import { DEFAULT_RESORT_URL } from '../constants.js';
 import { createBrowser, closeBrowser } from '../lib/browser.js';
-import { discoverLots } from '../lib/scraper.js';
+import { ScraperEngine } from '../resorts/index.js';
+import { resolveResort } from '../lib/resolve.js';
 import { authCommand } from './auth.js';
 import type { SetupOptions } from '../types.js';
 
@@ -22,7 +23,6 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
   });
 
   try {
-    // Resort URL
     const currentUrl = config.resortUrl || DEFAULT_RESORT_URL;
     const urlAnswer = await prompt(rl, `Resort URL [${currentUrl}]: `);
     if (urlAnswer) {
@@ -35,17 +35,27 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
 
     const resortUrl = config.resortUrl || DEFAULT_RESORT_URL;
 
-    // Lot discovery
-    let discoveredLots: string[] = [];
+    let resort;
     try {
-      console.log();
-      log.info('Discovering parking lots...');
-      const context = await createBrowser({ headed: false });
-      const page = await context.newPage();
-      discoveredLots = await discoverLots(page, resortUrl);
-      await closeBrowser(context);
-    } catch {
-      log.warn('Could not complete discovery. Lot preferences may need manual configuration.');
+      resort = resolveResort({ ...config, resortUrl });
+    } catch (e) {
+      log.warn(e instanceof Error ? e.message : String(e));
+      log.warn('Continuing setup with default settings.');
+    }
+
+    let discoveredLots: string[] = [];
+    if (resort) {
+      try {
+        console.log();
+        log.info('Discovering parking lots...');
+        const context = await createBrowser({ headed: false });
+        const page = await context.newPage();
+        const engine = new ScraperEngine();
+        discoveredLots = await engine.discoverLots(page, resort);
+        await closeBrowser(context);
+      } catch {
+        log.warn('Could not complete discovery. Lot preferences may need manual configuration.');
+      }
     }
 
     if (discoveredLots.length > 1) {
@@ -85,16 +95,15 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
       console.log(`  Lots:   ${lotList}`);
     }
 
-    // Prompt for authentication
     console.log();
-    const authAnswer = await prompt(rl, 'Authenticate with HONK now? (Y/n): ');
+    const authAnswer = await prompt(rl, 'Authenticate now? (Y/n): ');
     const shouldAuth = !authAnswer || authAnswer.toLowerCase() === 'y' || authAnswer.toLowerCase() === 'yes';
 
     rl.close();
 
-    if (shouldAuth) {
+    if (shouldAuth && resort) {
       console.log();
-      await authCommand({ verbose: false, resortUrl });
+      await authCommand({ verbose: false, resort });
     } else {
       console.log();
       log.info('Run "ski-parker auth" later to authenticate.');
