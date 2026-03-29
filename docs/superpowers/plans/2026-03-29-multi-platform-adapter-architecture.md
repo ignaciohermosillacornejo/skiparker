@@ -1483,7 +1483,7 @@ export async function setupCommand(options: SetupOptions = {}): Promise<void> {
 
     if (shouldAuth && resort) {
       console.log();
-      await authCommand({ verbose: false, resortUrl, resort });
+      await authCommand({ verbose: false, resort });
     } else {
       console.log();
       log.info('Run "ski-parker auth" later to authenticate.');
