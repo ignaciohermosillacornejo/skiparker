@@ -22,7 +22,11 @@
 
 ### 1.1 Resort Descriptor
 
-A TypeScript object that fully describes how to interact with a resort's parking site. Pure data — no browser interaction logic.
+A TypeScript object that describes how to interact with a resort's parking site. Primarily declarative data, with one pragmatic exception noted below.
+
+#### Relationship to existing `ResortConfig`
+
+The existing `ResortConfig` interface in `types.ts` (along with `LotConfig`, `ReservationTypeConfig`, `BookingFlowType`) was designed speculatively and is currently unused. `ResortDescriptor` replaces it entirely. During implementation, delete `ResortConfig`, `LotConfig`, `ReservationTypeConfig`, and `BookingFlowType` from `types.ts`. Any fields from those types that prove useful (e.g., `carpoolThreshold`, `requiresPhoneVerification`) can be added to `ResortDescriptor` later when a resort actually needs them.
 
 ```typescript
 interface ResortDescriptor {
@@ -37,7 +41,8 @@ interface ResortDescriptor {
   };
   calendar: {
     container: string;           // CSS selector for calendar root
-    dayCell: (dateStr: string) => string;  // builds selector for a specific date
+    dayCellTemplate: string;     // selector template with {date} placeholder
+    dateFormat: 'aria-label-long' | 'data-date-iso' | 'data-date-ymd';
     navLeft?: string;
     navRight?: string;
     maxNavigationAttempts: number;
@@ -65,10 +70,28 @@ interface AvailabilityRule {
 }
 
 interface AvailabilityMatch {
-  type: 'style-contains' | 'class-contains' | 'aria-disabled' | 'attribute';
-  value: string;
+  type: 'style-contains' | 'class-contains' | 'aria-disabled' | 'attribute' | 'element-absent';
+  value: string;  // ignored for 'element-absent'
 }
+
+type ResolvedResort = { descriptor: ResortDescriptor; hooks?: ResortHooks };
 ```
+
+#### Calendar date selector strategy
+
+Rather than putting a function on the descriptor (which would complicate auto-generation by the ingestion agent), the calendar uses two declarative fields:
+
+- `dayCellTemplate` — a CSS selector with a `{date}` placeholder, e.g.:
+  - HONK: `.mbsc-calendar-day-text[aria-label="{date}"]`
+  - Crystal: `#calendar .calendar_day[data-date^="{date}"]`
+- `dateFormat` — tells the engine how to format the `YYYY-MM-DD` date string before substituting it into the template:
+  - `'aria-label-long'`: `"Sunday, March 20, 2026"` (HONK/Mobiscroll)
+  - `'data-date-iso'`: `"2026-03-20"` (Crystal, ISO prefix match)
+  - `'data-date-ymd'`: `"2026-03-20"` (same as ISO, but available if a site uses a different prefix format)
+
+The engine's `buildDayCellSelector(descriptor, dateStr)` handles the formatting and substitution. This keeps descriptors as pure data that the ingestion agent can generate without producing executable code.
+
+If a future resort uses a date format not covered by the enum, add a new variant to `dateFormat` and a corresponding formatter in the engine — a one-line addition to each.
 
 ### 1.2 Resort Hooks
 
@@ -99,7 +122,11 @@ const resort = ResortRegistry.findByUrl('https://reservenski.parkstevenspass.com
 // Returns: { descriptor, hooks } or throws with list of supported resorts
 ```
 
-URL matching checks each descriptor's `urls.base` against the configured `resortUrl`.
+#### URL matching strategy
+
+URL matching normalizes both sides before comparing: lowercase, strip trailing slashes, strip protocol (`https://`), then compare hostnames. For example, `https://ReserveNSki.ParkStevensPass.com/` and `https://reservenski.parkstevenspass.com` both normalize to `reservenski.parkstevenspass.com` and match.
+
+If no match is found, the error message lists all registered resorts with their URLs.
 
 ### 1.4 File Structure
 
@@ -141,9 +168,11 @@ ScraperEngine.checkAvailability(page, resort, dateStr, lotPreferences?)
   │     → sleep(resort.timing.calendarRenderDelay)
   │
   ├── 4. findDateElement
+  │     → build selector via buildDayCellSelector(descriptor, dateStr)
   │     → hooks.findDateElement?.(page, selector)
-  │     → OR default: page.$(resort.calendar.dayCell(dateStr))
+  │     → OR default: page.$(selector)
   │     → if not found: navigate months via navRight, retry up to maxNavigationAttempts
+  │     → if still not found after max attempts: return 'element-absent' status
   │
   └── 5. evaluateAvailability
         → hooks.parseAvailability?.(element)
@@ -259,9 +288,14 @@ The injector reads this map and the current scenario, modifies the HTML before s
 
 ### 3.4 Migration
 
-- The existing HONK mock React app gets migrated into `platforms/honk/` as static snapshots
-- Scenario API keeps the same contract, extended with `platform` field (defaults to `"honk"`)
-- E2e tests add `platform` to scenario setup, everything else stays the same
+The existing HONK mock is a full Vite + React application (`App.tsx`, `components/`, `pages/`) that dynamically renders calendar state via React. This is a meaningful rewrite, not a rename:
+
+1. **Capture static snapshots** — run the existing React mock server, use Playwright to navigate to each page state, save the rendered HTML. This produces the `platforms/honk/` HTML files with real Mobiscroll markup.
+2. **Extract CSS** — the existing `public/css/` fixtures (stevens-pass.css, honk-app.css, honk-vendor.css) move directly into `platforms/honk/styles/`.
+3. **Replace React rendering with server-side injection** — the new `injector.ts` reads the static HTML and mutates date elements based on the scenario, replacing what the React components did dynamically.
+4. **Keep the existing mock server running during transition** — don't delete it until the new static-serving approach passes all existing e2e tests.
+
+Scenario API keeps the same contract, extended with `platform` field (defaults to `"honk"` for backward compatibility). E2e tests add `platform` to scenario setup.
 
 ---
 
@@ -313,12 +347,19 @@ A Claude Code skill (`/ingest-resort`) that automates resort discovery, descript
 
 2. **After Phase 4 (Artifacts)** — Standard code review of generated descriptor, hooks, and mock assets.
 
-### 4.3 Constraints
+### 4.3 Constraints & Authentication
 
 - **Read-only observation** — never books anything
-- **Anonymous browsing** — no account creation, uses unauthenticated access for discovery
 - **No bot detection bypass** — if it hits Turnstile/CAPTCHA, notes it in the report as a constraint
 - **Resort-level artifacts only** — does not modify commands, engine, or other shared code
+
+**Authentication handling:** Many parking sites (including most HONK portals) require login before showing the calendar. The agent handles this by:
+1. Launching a **headed browser** so the operator can manually log in if prompted
+2. Checking if the calendar page is accessible without auth first (some sites show calendars publicly)
+3. If login is required, pausing with: "This site requires authentication. Please log in in the browser window, then press Enter to continue discovery."
+4. After the operator logs in, the agent continues discovery with the authenticated session
+
+The agent does **not** create accounts or store credentials. It uses the operator's existing session for the duration of discovery only.
 
 ### 4.4 Re-ingestion for Maintenance
 
@@ -359,13 +400,20 @@ ski-parker resorts    # List supported resorts with URLs and platform info
 
 All existing commands unchanged in interface. Internally they resolve resort via registry and use the engine.
 
-### 5.3 Validation
+### 5.3 Test Environment (`SKI_PARKER_BASE_URL`)
+
+The existing `SKI_PARKER_BASE_URL` env var overrides the resort URL for e2e tests (pointing to the mock server at `localhost:3847`). In the new architecture, registry lookup must handle this:
+
+- When `SKI_PARKER_BASE_URL` is set, the registry skips URL matching and instead uses a `platform` field from the scenario API response (or a `SKI_PARKER_PLATFORM` env var) to select the correct descriptor.
+- This allows the mock server to serve HONK or Crystal HTML at the same localhost URL while the engine applies the correct descriptor.
+
+### 5.4 Validation
 
 On startup, `watch` and `auth` validate:
 - `resortUrl` matches a registered resort (or clear error)
 - `lotPreferences` only set if the resort supports lots (warn if not)
 
-### 5.4 Unchanged
+### 5.5 Unchanged
 
 - All existing CLI flags (`--verbose`, `--notify`, `--sound`, `--headed`)
 - Session management (`browser.ts`)
