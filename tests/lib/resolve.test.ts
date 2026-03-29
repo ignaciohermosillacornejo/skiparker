@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { resolveDate, resolveResortUrl } from '../../src/lib/resolve.js';
+import { resolveDate, resolveResort } from '../../src/lib/resolve.js';
 import type { Config } from '../../src/types.js';
 
 const mockConfig = (overrides: Partial<Config> = {}): Config => ({
@@ -27,37 +27,55 @@ describe('resolveDate', () => {
   });
 });
 
-describe('resolveResortUrl', () => {
-  const originalEnv = process.env.SKI_PARKER_BASE_URL;
+describe('resolveResort', () => {
+  const originalBaseUrl = process.env.SKI_PARKER_BASE_URL;
+  const originalPlatform = process.env.SKI_PARKER_PLATFORM;
 
   afterEach(() => {
-    if (originalEnv === undefined) {
-      delete process.env.SKI_PARKER_BASE_URL;
-    } else {
-      process.env.SKI_PARKER_BASE_URL = originalEnv;
-    }
+    if (originalBaseUrl === undefined) delete process.env.SKI_PARKER_BASE_URL;
+    else process.env.SKI_PARKER_BASE_URL = originalBaseUrl;
+    if (originalPlatform === undefined) delete process.env.SKI_PARKER_PLATFORM;
+    else process.env.SKI_PARKER_PLATFORM = originalPlatform;
   });
 
-  it('returns resort URL when configured', () => {
+  it('resolves Stevens Pass by URL', () => {
     const config = mockConfig({ resortUrl: 'https://reservenski.parkstevenspass.com' });
-    expect(resolveResortUrl(config)).toBe('https://reservenski.parkstevenspass.com');
+    const resort = resolveResort(config);
+    expect(resort.descriptor.id).toBe('stevens-pass');
   });
 
-  it('prefers environment variable over config', () => {
-    process.env.SKI_PARKER_BASE_URL = 'https://mock-server.test';
-    const config = mockConfig({ resortUrl: 'https://reservenski.parkstevenspass.com' });
-    expect(resolveResortUrl(config)).toBe('https://mock-server.test');
+  it('resolves Crystal Mountain by URL', () => {
+    const config = mockConfig({ resortUrl: 'https://parking.crystalmountainresort.com' });
+    const resort = resolveResort(config);
+    expect(resort.descriptor.id).toBe('crystal-mountain');
   });
 
-  it('uses environment variable when no config', () => {
-    process.env.SKI_PARKER_BASE_URL = 'https://mock-server.test';
-    const config = mockConfig();
-    expect(resolveResortUrl(config)).toBe('https://mock-server.test');
+  it('throws on unknown URL', () => {
+    const config = mockConfig({ resortUrl: 'https://unknown-resort.example.com' });
+    expect(() => resolveResort(config)).toThrow(/no resort matches/i);
   });
 
-  it('throws when no resort URL configured', () => {
+  it('throws when no URL configured', () => {
     delete process.env.SKI_PARKER_BASE_URL;
     const config = mockConfig();
-    expect(() => resolveResortUrl(config)).toThrow('No resort URL configured');
+    expect(() => resolveResort(config)).toThrow('No resort URL configured');
+  });
+
+  it('uses SKI_PARKER_BASE_URL with default platform', () => {
+    process.env.SKI_PARKER_BASE_URL = 'http://localhost:3847';
+    delete process.env.SKI_PARKER_PLATFORM;
+    const config = mockConfig();
+    const resort = resolveResort(config);
+    expect(resort.descriptor.id).toBe('stevens-pass');
+    expect(resort.descriptor.urls.base).toBe('http://localhost:3847');
+  });
+
+  it('uses SKI_PARKER_PLATFORM to select descriptor', () => {
+    process.env.SKI_PARKER_BASE_URL = 'http://localhost:3847';
+    process.env.SKI_PARKER_PLATFORM = 'crystal-mountain';
+    const config = mockConfig();
+    const resort = resolveResort(config);
+    expect(resort.descriptor.id).toBe('crystal-mountain');
+    expect(resort.descriptor.urls.base).toBe('http://localhost:3847');
   });
 });
