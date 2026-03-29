@@ -37,6 +37,33 @@
       z-index: 10;
     }
     .SelectDate_availability__IccV4 { display: flex; gap: 16px; padding: 8px; justify-content: center; }
+
+    /* Crystal Mountain calendar styles */
+    .calendar_day {
+      padding: 8px;
+      border-radius: 4px;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .calendar_day.fc-available {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .calendar_day.fc-unavailable {
+      background-color: #f44336;
+      color: white;
+    }
+    .calendar_day.no-reserve {
+      background-color: #fff;
+      color: #333;
+    }
+    .calendar_day.calendar_disabled {
+      background-color: #eee;
+      color: #aaa;
+    }
   </style>
 </head>
 <body>
