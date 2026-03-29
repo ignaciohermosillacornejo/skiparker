@@ -6,6 +6,7 @@ export interface MockScenario {
   plate: string;
   bookingCount: number;
   lots?: string[];
+  platform: string;
 }
 
 // Realistic mix: weekends available/sold-out, some weekdays no-reservation, rest unavailable
@@ -39,6 +40,7 @@ const DEFAULT_SCENARIO: MockScenario = {
   checkoutOutcome: 'confirm',
   plate: 'CFH2637',
   bookingCount: 0,
+  platform: 'honk',
 };
 
 let cachedScenario: MockScenario | null = null;
@@ -65,4 +67,8 @@ export function getScenario(): MockScenario {
 export function getDateStatus(dateStr: string): 'available' | 'sold-out' | 'no-reservation' | 'unavailable' {
   const scenario = getScenario();
   return scenario.dates[dateStr] ?? 'unavailable';
+}
+
+export function getScenarioPlatform(): string {
+  return getScenario().platform ?? 'honk';
 }
