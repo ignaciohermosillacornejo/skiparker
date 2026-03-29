@@ -8,7 +8,8 @@ import { authCommand } from './commands/auth.js';
 import { watchCommand } from './commands/watch.js';
 import { setupCommand } from './commands/setup.js';
 import { loadConfig } from './lib/config.js';
-import { resolveDate, resolveResortUrl } from './lib/resolve.js';
+import { resolveDate, resolveResort } from './lib/resolve.js';
+import { registry } from './resorts/index.js';
 import { DEFAULTS, PATHS } from './constants.js';
 import { log } from './lib/utils.js';
 
@@ -32,10 +33,14 @@ program
 // Auth command
 program
   .command('auth')
-  .description('Authenticate with HONK (opens browser for manual login)')
+  .description('Authenticate with resort parking site (opens browser for manual login)')
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action(async (opts) => {
-    await authCommand({ verbose: opts.verbose, resortUrl: config.resortUrl });
+    let resort;
+    try {
+      resort = resolveResort(config);
+    } catch (e) { fail(e); }
+    await authCommand({ verbose: opts.verbose, resort });
   });
 
 // Setup command
@@ -105,6 +110,24 @@ Config exists: ${systemInfo.configExists}
     }
   });
 
+// Resorts command
+program
+  .command('resorts')
+  .description('List supported resorts')
+  .action(() => {
+    const resorts = registry.list();
+    if (resorts.length === 0) {
+      console.log('No resorts registered.');
+      return;
+    }
+    console.log('\nSupported resorts:\n');
+    for (const r of resorts) {
+      const lots = r.lots.supported ? 'multi-lot' : 'single';
+      console.log(`  ${r.name.padEnd(20)} ${r.urls.base.padEnd(50)} (${r.platform}, ${lots})`);
+    }
+    console.log();
+  });
+
 // Watch command
 program
   .command('watch')
@@ -127,10 +150,10 @@ Config defaults (from ~/.ski-parker/config.json):
   .option('--headed', 'Show browser window', false)
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action(async (opts) => {
-    let resortUrl;
+    let resort;
     try {
       resolveDate(opts.date);
-      resortUrl = resolveResortUrl(config);
+      resort = resolveResort(config);
     } catch (e) { fail(e); }
 
     await watchCommand({
@@ -141,8 +164,8 @@ Config defaults (from ~/.ski-parker/config.json):
       sound: opts.sound,
       headed: opts.headed,
       verbose: opts.verbose,
-      resortUrl,
       lotPreferences: opts.lot || config.lotPreferences,
+      resort,
     });
   });
 
